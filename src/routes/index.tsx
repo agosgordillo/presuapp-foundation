@@ -1,29 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Header } from "@/components/landing/Header";
+import { Hero } from "@/components/landing/Hero";
+import { Features } from "@/components/landing/Features";
+import { Pricing } from "@/components/landing/Pricing";
+import { FAQ } from "@/components/landing/FAQ";
+import { Footer } from "@/components/landing/Footer";
+import { Showcase } from "@/components/showcase/Showcase";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Your App" },
-      { name: "description", content: "Replace this with a one-sentence description of your app." },
-      { property: "og:title", content: "Your App" },
-      { property: "og:description", content: "Replace this with a one-sentence description of your app." },
+      { title: "PresuApp — Presupuestos inteligentes para Freelancers y Agencias" },
+      { name: "description", content: "Automatiza cotizaciones, gestiona clientes, haz seguimiento de pagos y exporta PDFs profesionales. SaaS B2B para freelancers y agencias." },
+      { property: "og:title", content: "PresuApp — Presupuestos inteligentes" },
+      { property: "og:description", content: "Automatiza cotizaciones, gestiona clientes y haz seguimiento de pagos en segundos." },
     ],
   }),
-  component: Index,
+  component: Landing,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function Landing() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-background">
+      <Header />
+      <main>
+        <Hero />
+        <Features />
+        <Pricing />
+        <FAQ />
+        <Showcase />
+      </main>
+      <Footer />
     </div>
   );
 }

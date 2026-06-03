@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { ArrowRight, Play, TrendingUp, FileText, CheckCircle2, DollarSign } from "lucide-react";
 
 export function Hero() {
@@ -22,17 +23,17 @@ export function Hero() {
             profesionales en segundos. Todo desde un panel centralizado B2B SaaS.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <a
-              href="#cta"
+            <Link
+              to="/dashboard"
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary-hover transition-all duration-200 ease-in-out hover:-translate-y-0.5"
             >
-              Crear Nuevo Presupuesto <ArrowRight className="h-4 w-4" />
-            </a>
+              Ir al Dashboard <ArrowRight className="h-4 w-4" />
+            </Link>
             <a
               href="#showcase"
               className="inline-flex items-center gap-2 rounded-lg bg-secondary px-6 py-3 text-sm font-semibold text-secondary-foreground border border-border hover:bg-accent transition-colors duration-200 ease-in-out"
             >
-              <Play className="h-4 w-4" /> Ver Demostración
+              <Play className="h-4 w-4" /> Ver Componentes
             </a>
           </div>
         </div>

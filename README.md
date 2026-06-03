@@ -1,79 +1,96 @@
 # PresuApp - Smart Budget Management System
 
 ## 👥 Integrantes del Grupo
-
 - **Desarrollador/Integrante:** [Insertar Nombre Completo] (Trabajo Individual / Grupal)
 
 ## 📝 Descripción Técnica del Proyecto
-
-**PresuApp** es una plataforma web inteligente diseñada específicamente como una solución B2B SaaS y CRM ágil para freelancers, profesionales independientes y pequeñas agencias de servicios globales.
+**PresuApp** es una plataforma web inteligente diseñada como una solución B2B SaaS y CRM ágil para freelancers, profesionales independientes y agencias creativas boutique.
 
 ### Problemática que Resuelve:
-
-Los profesionales independientes suelen perder incontables horas mensuales armando presupuestos manualmente en hojas de cálculo desorganizadas, cometiendo errores críticos en el cálculo de impuestos y perdiendo la trazabilidad de qué cotizaciones han sido enviadas, cuáles fueron aceptadas y qué montos quedan pendientes de cobro real.
+Los profesionales independientes pierden múltiples horas mensuales estructurando propuestas de servicios, lidiando con errores de cálculo manuales de IVA/impuestos y perdiendo la trazabilidad financiera sobre qué cobros reales se han efectuado frente a los saldos pendientes de presupuestos aceptados.
 
 ### Perfil de Usuario Target:
-
-- Freelancers de la economía del conocimiento (Diseñadores UX/UI, Desarrolladores de Software, Consultores).
-- Pequeñas agencias boutique de Marketing Digital y Diseño Web.
-- Proveedores de servicios corporativos que facturan bajo modalidades mixtas (por hora, abonos mensuales o llave en mano).
+- Freelancers de la economía del conocimiento (Diseñadores UX/UI, Desarrolladores, Consultores).
+- Pequeñas agencias digitales y estudios creativos.
 
 ---
 
-## 📐 Arquitectura de Componentes y Carpetas
-
-El proyecto implementa un patrón de arquitectura modular y atómico sobre React + Vite, separando de manera estricta los componentes reutilizables globales de las vistas contextuales de la Landing Page:
+## 📐 Arquitectura de Carpetas y Enrutamiento (SPA)
+El proyecto implementa un esquema modular y atómico, aislando primitivas de diseño, bloques de maquetación de la Landing Page y componentes de páginas ruteadas:
 
 ```text
 src/
 ├── components/
-│   ├── ui/          # Componentes primitivos atómicos (Botones, Inputs, Badges, Cards)
-│   ├── landing/     # Secciones estructurales de la Landing Page (Hero, Features, FAQ, Footer)
-│   └── showcase/    # Panel de Pruebas interactivo del Catálogo Estático (Showcase)
-├── styles/          # Configuración global de Tailwind CSS y variables de tokens visuales
-├── App.tsx          # Punto de entrada principal y orquestador de renderizado
-└── main.tsx         # Inicialización del entorno React
+│   ├── ui/          # Primitivas del Design System (Botones, Inputs, Badges, Cards)
+│   ├── landing/     # Secciones modulares de la Landing Page (Hero, Features, FAQ)
+│   ├── layout/      # Estructura de envoltorio global (DashboardLayout con barra de navegación)
+│   └── showcase/    # Catálogo estático para validación de componentes (Showcase)
+├── pages/           # Vistas de página mapeadas a las rutas del sistema SPA
+│   ├── Dashboard.tsx
+│   ├── ClientsList.tsx
+│   ├── ClientDetail.tsx  # Ruta dinámica (:id)
+│   ├── ProjectsList.tsx
+│   ├── ProjectDetail.tsx  # Ruta dinámica (:id)
+│   ├── CatalogList.tsx
+│   └── QuotesList.tsx
+├── routes/          # Declaración de rutas SPA (file-based routing)
+└── router.tsx       # Configuración del router y mapeo de paths
 ```
+
+### Mapa de Rutas
+| Path                | Vista              | Tipo     |
+|---------------------|--------------------|----------|
+| `/`                 | LandingPage + Showcase | Estática |
+| `/dashboard`        | Dashboard          | Estática |
+| `/clients`          | ClientsList        | Estática |
+| `/clients/:id`      | ClientDetail       | Dinámica |
+| `/projects`         | ProjectsList       | Estática |
+| `/projects/:id`     | ProjectDetail      | Dinámica |
+| `/catalog`          | CatalogList        | Estática |
+| `/quotes`           | QuotesList         | Estática |
 
 ---
 
-## 🎯 Objetivos Alcanzados en esta Fase
+## 🎯 Objetivos Técnicos Alcanzados
 
-1. **Consistencia Visual Absoluta:** Configuración e implementación de un Design System corporativo unificado mediante clases utilitarias globales de Tailwind CSS y primitivas visuales.
-2. **Modularidad Estricta:** Creación de componentes desacoplados con contratos de propiedades estables y tipados estrictos en TypeScript.
-3. **Mitigación de Incertidumbre:** Creación de un catálogo/hoja de ruta estática (*Showcase*) para evaluar de forma inmediata la fidelidad del diseño frente a la interfaz planteada en Figma.
+### 1. Sistema de Ruteo Consolidado (Entrega #3)
+- **Navegación SPA Completa:** Infraestructura de enrutamiento client-side sin recarga de página.
+- **Rutas Estáticas y Dinámicas:** Mapeo completo de la lógica de negocio incluyendo captura de identificadores por URL (`/clients/:id` y `/projects/:id`) mediante el hook `useParams`.
+- **Layout Global de Aplicación:** `DashboardLayout` con sidebar persistente en desktop y drawer hamburguesa en mobile, compartido por todas las rutas internas.
+- **Estructura de Páginas Escalable:** Cada ruta renderiza un componente dedicado con `<h1>` jerárquico, listo para inyección de datos lógicos.
 
-## 🛠️ Tecnologías Utilizadas (Tech Stack)
+### 2. Implementación de Design System y Landing Page (Entrega #2)
+- **Variables Globales Coherentes:** Tokens estrictos basados en grilla de 8px y paleta corporativa (Azul `#2563EB`, Verde `#10B981`, Ámbar `#F59E0B`, Rojo `#EF4444`).
+- **Catálogo de Componentes Estáticos (Showcase):** Espacio interactivo al final de la Landing Page que testea variantes de botones (incluyendo estado *Loading* con spinner animado), inputs con estados de error simulados, y badges de estado del ciclo de vida del presupuesto.
 
-- **React 18** (Biblioteca para la construcción de interfaces de usuario)
-- **Vite** (Herramienta de empaquetado de alta velocidad para entornos frontend modernos)
-- **TypeScript** (Tipado estricto para garantizar solidez operativa en el código)
-- **Tailwind CSS** (Framework de estilos enfocado en utilidades bajo grilla de 8px)
-- **Shadcn/UI & Lucide-React** (Base de componentes accesibles e iconografía moderna)
+---
+
+## 🛠️ Stack Tecnológico Utilizado
+- **React 19** (Librería UI declarativa)
+- **Vite 7** (Herramienta de compilación ultrarrápida para desarrollo frontend)
+- **TypeScript** (Tipado estricto para estabilidad del software)
+- **TanStack Router** (Motor de enrutamiento SPA type-safe con file-based routing y soporte para rutas dinámicas vía `useParams`)
+- **Tailwind CSS 4 & Shadcn/UI** (Estilizado utilitario y componentes accesibles)
 
 ---
 
 ## 🚀 Guía de Instalación y Ejecución Local
 
-Sigue estos pasos para clonar el repositorio, instalar las dependencias requeridas y levantar el entorno local de desarrollo:
+Sigue estos pasos para clonar el repositorio, configurar dependencias locales y levantar la aplicación:
 
 ### 1. Clonar el Repositorio
-
 ```bash
 git clone https://github.com/[tu-usuario]/presuapp.git
 cd presuapp
 ```
 
 ### 2. Instalar Dependencias del Sistema
-
 ```bash
 npm install
 ```
 
 ### 3. Ejecutar el Proyecto en Entorno de Desarrollo Local
-
 ```bash
 npm run dev
 ```
-
-El servidor local se iniciará comúnmente en la dirección: `http://localhost:5173`
+El servidor local se iniciará de forma predeterminada en la dirección: `http://localhost:5173`

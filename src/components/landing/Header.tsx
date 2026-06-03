@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { LayoutGrid } from "lucide-react";
 
 const links = [
@@ -28,12 +29,12 @@ export function Header() {
             </a>
           ))}
         </nav>
-        <a
-          href="#cta"
+        <Link
+          to="/dashboard"
           className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary-hover transition-colors duration-200 ease-in-out"
         >
-          Probar Gratis
-        </a>
+          Ingresar al Panel
+        </Link>
       </div>
     </header>
   );

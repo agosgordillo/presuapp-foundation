@@ -1,0 +1,122 @@
+// PresuApp - Prisma Schema
+// Smart Budget Management System for freelancers & small agencies
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum ProjectStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum UnitType {
+  HR
+  U
+  SVC
+  MES
+  PROY
+}
+
+enum BudgetStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+}
+
+enum PaymentMethod {
+  TRANSFER
+  CARD
+  CASH
+  CHEQUE
+  OTHER
+}
+
+// ============================================================
+// MODELS
+// ============================================================
+
+model Client {
+  id        String   @id @default(uuid())
+  name      String
+  company   String
+  email     String   @unique
+  phone     String
+  createdAt DateTime @default(now())
+
+  projects Project[]
+  budgets  Budget[]
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  clientId    String
+  status      ProjectStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+
+  client   Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  budgets  Budget[]
+  payments Payment[]
+}
+
+model ItemCatalog {
+  id             String   @id @default(uuid())
+  name           String
+  description    String
+  unitType       UnitType
+  referencePrice Float
+  category       String
+  createdAt      DateTime @default(now())
+}
+
+model Budget {
+  id             String       @id // Custom Short ID e.g. #001
+  clientId       String
+  projectId      String?
+  status         BudgetStatus @default(DRAFT)
+  subtotal       Float
+  taxPercentage  Float
+  total          Float
+  createdAt      DateTime     @default(now())
+
+  client  Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  items   BudgetItem[]
+}
+
+model BudgetItem {
+  id          String  @id @default(uuid())
+  budgetId    String
+  name        String
+  description String
+  unitType    String
+  quantity    Float
+  unitPrice   Float
+  subtotal    Float
+
+  budget Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  projectId String
+  amount    Float
+  method    PaymentMethod
+  notes     String?
+  date      DateTime      @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}

@@ -24,10 +24,10 @@ export function Hero() {
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
-              to="/dashboard"
+              to="/login"
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary-hover transition-all duration-200 ease-in-out hover:-translate-y-0.5"
             >
-              Ir al Dashboard <ArrowRight className="h-4 w-4" />
+              Probar Gratis <ArrowRight className="h-4 w-4" />
             </Link>
             <a
               href="#showcase"

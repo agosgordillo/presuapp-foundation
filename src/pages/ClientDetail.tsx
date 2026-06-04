@@ -1,45 +1,98 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
+type ClientRow = { id: number; nombre: string; email: string; telefono: string; empresa: string };
+type ProyectoRow = { id: number; nombre: string; estado: string };
 
 export default function ClientDetail({ id }: { id: string }) {
+  const clientId = Number(id);
+  const [cliente, setCliente] = useState<ClientRow | null>(null);
+  const [proyectos, setProyectos] = useState<ProyectoRow[]>([]);
+  const [facturacion, setFacturacion] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      if (!Number.isFinite(clientId)) {
+        setLoading(false);
+        return;
+      }
+      const [{ data: c, error: ec }, { data: p }] = await Promise.all([
+        supabase.from("clientes").select("*").eq("id", clientId).maybeSingle(),
+        supabase.from("proyectos").select("id, nombre, estado").eq("cliente_id", clientId).order("created_at", { ascending: false }),
+      ]);
+      if (ec) toast.error(ec.message);
+      setCliente(c as ClientRow | null);
+      setProyectos((p ?? []) as ProyectoRow[]);
+
+      const projIds = (p ?? []).map((x: any) => x.id);
+      if (projIds.length) {
+        const { data: pres } = await supabase.from("presupuestos").select("total").eq("estado", "ACCEPTED").in("proyecto_id", projIds);
+        setFacturacion((pres ?? []).reduce((s, r) => s + Number(r.total), 0));
+      }
+      setLoading(false);
+    })();
+  }, [clientId]);
+
   return (
     <div className="space-y-8">
-      <Link
-        to="/clients"
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-heading transition-colors"
-      >
+      <Link to="/clients" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-heading">
         <ArrowLeft className="h-4 w-4" /> Volver a Clientes
       </Link>
 
       <header>
-        <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-          /clients/:id
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-primary">/clients/:id</p>
         <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">
-          Cliente: <span className="text-primary">{id}</span>
+          Cliente: <span className="text-primary">#{id}</span>
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Token dinámico capturado vía <code className="rounded bg-secondary px-1.5 py-0.5 text-xs">useParams()</code>.
-          Esta vista renderiza el perfil parametrizado del cliente seleccionado.
+          Token <code className="rounded bg-secondary px-1.5 py-0.5 text-xs">:id</code> capturado vía <code className="rounded bg-secondary px-1.5 py-0.5 text-xs">useParams()</code> y resuelto contra Lovable Cloud.
         </p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <section className="lg:col-span-2 rounded-2xl border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-heading">Información de la cuenta</h2>
-          <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
-            <Info label="ID interno" value={id} />
-            <Info label="Razón social" value="Demo Client S.A." />
-            <Info label="Email" value="contacto@cliente.com" />
-            <Info label="Teléfono" value="+54 11 5555 1234" />
-          </dl>
-        </section>
-        <aside className="rounded-2xl border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-heading">Resumen financiero</h2>
-          <p className="mt-4 text-3xl font-bold text-primary">$12,400</p>
-          <p className="text-xs text-muted-foreground">Facturación acumulada</p>
-        </aside>
-      </div>
+      {loading ? (
+        <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando…</p>
+      ) : !cliente ? (
+        <p className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">Cliente no encontrado o sin acceso.</p>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <section className="lg:col-span-2 rounded-2xl border border-border bg-card p-6">
+            <h2 className="text-lg font-semibold text-heading">Información de la cuenta</h2>
+            <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
+              <Info label="ID interno" value={String(cliente.id)} />
+              <Info label="Empresa" value={cliente.empresa} />
+              <Info label="Email" value={cliente.email} />
+              <Info label="Teléfono" value={cliente.telefono} />
+            </dl>
+
+            <h3 className="mt-8 text-sm font-semibold text-heading uppercase tracking-wider">Proyectos</h3>
+            {proyectos.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">Aún no hay proyectos para este cliente.</p>
+            ) : (
+              <ul className="mt-3 divide-y divide-border">
+                {proyectos.map((p) => (
+                  <li key={p.id} className="flex items-center justify-between py-3">
+                    <Link to="/projects/$id" params={{ id: String(p.id) }} className="font-medium text-heading hover:text-primary">
+                      {p.nombre}
+                    </Link>
+                    <span className="text-xs font-semibold text-muted-foreground">{p.estado}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <aside className="rounded-2xl border border-border bg-card p-6">
+            <h2 className="text-lg font-semibold text-heading">Facturación acumulada</h2>
+            <p className="mt-4 text-3xl font-bold text-primary">
+              {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(facturacion)}
+            </p>
+            <p className="text-xs text-muted-foreground">Suma de presupuestos ACCEPTED</p>
+          </aside>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,74 +1,103 @@
-import { DollarSign, TrendingUp, FileText, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { DollarSign, TrendingUp, FileText, Users, Loader2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
+
+type Metrics = {
+  facturado: number;
+  cobrado: number;
+  pendiente: number;
+  clientes: number;
+  recientes: { id: number; codigo: string; cliente: string; total: number; estado: string }[];
+};
+
+const money = (n: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
 export default function Dashboard() {
+  const [data, setData] = useState<Metrics | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const [{ data: accepted }, { data: pagos }, { count: cliCount }, { data: recientes }] = await Promise.all([
+        supabase.from("presupuestos").select("total,estado").eq("estado", "ACCEPTED"),
+        supabase.from("pagos").select("monto"),
+        supabase.from("clientes").select("*", { count: "exact", head: true }),
+        supabase
+          .from("presupuestos")
+          .select("id, codigo, total, estado, proyectos!inner(clientes!inner(nombre))")
+          .order("created_at", { ascending: false })
+          .limit(5),
+      ]);
+
+      const facturado = (accepted ?? []).reduce((s, r) => s + Number(r.total), 0);
+      const cobrado = (pagos ?? []).reduce((s, r) => s + Number(r.monto), 0);
+      const pendiente = Math.max(0, facturado - cobrado);
+      const recientesFormatted = (recientes ?? []).map((r: any) => ({
+        id: r.id,
+        codigo: r.codigo,
+        cliente: r.proyectos?.clientes?.nombre ?? "—",
+        total: Number(r.total),
+        estado: r.estado,
+      }));
+
+      setData({ facturado, cobrado, pendiente, clientes: cliCount ?? 0, recientes: recientesFormatted });
+      setLoading(false);
+    })();
+  }, []);
+
   return (
     <div className="space-y-8">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-          /dashboard
-        </p>
-        <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">
-          Dashboard — Resumen Operativo
-        </h1>
+        <p className="text-xs font-semibold uppercase tracking-wider text-primary">/dashboard</p>
+        <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">Dashboard — Resumen Operativo</h1>
         <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
-          Hub central de métricas B2B. Vista panorámica de facturación, cobros pendientes
-          y actividad de presupuestos en tiempo real.
+          Hub central de métricas B2B. Vista panorámica en tiempo real desde Lovable Cloud.
         </p>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <Metric label="Facturado (mes)" value="$15,240" tone="primary" icon={<DollarSign className="h-4 w-4" />} delta="+12.4%" />
-        <Metric label="Cobrado" value="$11,800" tone="success" icon={<TrendingUp className="h-4 w-4" />} delta="+8.1%" />
-        <Metric label="Saldo Pendiente" value="$3,440" tone="warning" icon={<FileText className="h-4 w-4" />} delta="3 facturas" />
-        <Metric label="Clientes Activos" value="24" tone="primary" icon={<Users className="h-4 w-4" />} delta="+2 nuevos" />
-      </div>
+      {loading || !data ? (
+        <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Cargando métricas…</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <Metric label="Facturado (aceptado)" value={money(data.facturado)} tone="primary" icon={<DollarSign className="h-4 w-4" />} delta="Presupuestos ACCEPTED" />
+            <Metric label="Cobrado" value={money(data.cobrado)} tone="success" icon={<TrendingUp className="h-4 w-4" />} delta="Σ pagos" />
+            <Metric label="Saldo Pendiente" value={money(data.pendiente)} tone="warning" icon={<FileText className="h-4 w-4" />} delta="Facturado − Cobrado" />
+            <Metric label="Clientes en cartera" value={String(data.clientes)} tone="primary" icon={<Users className="h-4 w-4" />} delta="Cartera total" />
+          </div>
 
-      <section className="rounded-2xl border border-border bg-card p-6">
-        <h2 className="text-lg font-semibold text-heading">Actividad Reciente</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Pipeline de presupuestos en curso. Conecta con `/quotes` para ver el detalle completo.
-        </p>
-        <ul className="mt-5 divide-y divide-border">
-          {[
-            { id: "PA-2026-014", client: "Estudio Lumen", status: "Aceptado", amount: "$5,082" },
-            { id: "PA-2026-013", client: "Norte Digital", status: "Enviado", amount: "$2,640" },
-            { id: "PA-2026-012", client: "Boreal Studio", status: "Borrador", amount: "$1,200" },
-          ].map((q) => (
-            <li key={q.id} className="flex items-center justify-between py-3">
-              <div>
-                <p className="text-sm font-semibold text-heading">{q.id}</p>
-                <p className="text-xs text-muted-foreground">{q.client}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-semibold text-heading">{q.amount}</p>
-                <p className="text-xs text-muted-foreground">{q.status}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
+          <section className="rounded-2xl border border-border bg-card p-6">
+            <h2 className="text-lg font-semibold text-heading">Actividad Reciente</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Últimos presupuestos creados. <Link to="/quotes" className="text-primary font-medium">Ver todos →</Link></p>
+            {data.recientes.length === 0 ? (
+              <p className="mt-6 text-sm text-muted-foreground">Aún no has creado presupuestos.</p>
+            ) : (
+              <ul className="mt-5 divide-y divide-border">
+                {data.recientes.map((q) => (
+                  <li key={q.id} className="flex items-center justify-between py-3">
+                    <div>
+                      <p className="text-sm font-semibold text-heading">{q.codigo}</p>
+                      <p className="text-xs text-muted-foreground">{q.cliente}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-heading">{money(q.total)}</p>
+                      <p className="text-xs text-muted-foreground">{q.estado}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
+      )}
     </div>
   );
 }
 
-function Metric({
-  label,
-  value,
-  delta,
-  icon,
-  tone,
-}: {
-  label: string;
-  value: string;
-  delta: string;
-  icon: React.ReactNode;
-  tone: "primary" | "success" | "warning";
-}) {
-  const tones = {
-    primary: "bg-primary-light text-primary-dark",
-    success: "bg-success-light text-success-dark",
-    warning: "bg-warning-light text-warning-dark",
-  };
+function Metric({ label, value, delta, icon, tone }: { label: string; value: string; delta: string; icon: React.ReactNode; tone: "primary" | "success" | "warning"; }) {
+  const tones = { primary: "bg-primary-light text-primary-dark", success: "bg-success-light text-success-dark", warning: "bg-warning-light text-warning-dark" };
   return (
     <div className="rounded-2xl border border-border bg-card p-5 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/30">
       <div className="flex items-start justify-between">

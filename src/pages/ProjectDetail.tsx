@@ -1,71 +1,171 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, CheckCircle2, Circle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, Loader2, Plus } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
+type Proyecto = { id: number; nombre: string; descripcion: string | null; estado: string; repositorio_url: string | null; cliente_id: number; clientes?: { nombre: string } };
+type Pres = { id: number; codigo: string; total: number; estado: string };
+type Pago = { id: number; fecha_pago: string; monto: number; metodo: string; notas: string | null };
+
+const money = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 
 export default function ProjectDetail({ id }: { id: string }) {
-  const milestones = [
-    { name: "Discovery & Research", done: true },
-    { name: "Wireframes aprobados", done: true },
-    { name: "Diseño visual final", done: true },
-    { name: "Desarrollo Frontend", done: false },
-    { name: "QA + Lanzamiento", done: false },
-  ];
+  const projectId = Number(id);
+  const [tab, setTab] = useState<"budgets" | "repo" | "payments">("budgets");
+  const [proyecto, setProyecto] = useState<Proyecto | null>(null);
+  const [presupuestos, setPresupuestos] = useState<Pres[]>([]);
+  const [pagos, setPagos] = useState<Pago[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [pago, setPago] = useState({ monto: "", metodo: "TRANSFER", notas: "" });
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    if (!Number.isFinite(projectId)) return setLoading(false);
+    const [{ data: pr }, { data: pres }, { data: pgs }] = await Promise.all([
+      supabase.from("proyectos").select("*, clientes(nombre)").eq("id", projectId).maybeSingle(),
+      supabase.from("presupuestos").select("id, codigo, total, estado").eq("proyecto_id", projectId).order("created_at", { ascending: false }),
+      supabase.from("pagos").select("*").eq("proyecto_id", projectId).order("fecha_pago", { ascending: false }),
+    ]);
+    setProyecto(pr as any);
+    setPresupuestos((pres ?? []).map((r: any) => ({ ...r, total: Number(r.total) })));
+    setPagos((pgs ?? []).map((r: any) => ({ ...r, monto: Number(r.monto) })));
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, [projectId]);
+
+  const contractValue = presupuestos.filter((p) => p.estado === "ACCEPTED").reduce((s, p) => s + p.total, 0);
+  const cobrado = pagos.reduce((s, p) => s + p.monto, 0);
+  const saldo = Math.max(0, contractValue - cobrado);
+
+  const addPago = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const monto = Number(pago.monto);
+    if (!Number.isFinite(monto) || monto <= 0) return toast.error("Monto inválido.");
+    if (contractValue === 0) return toast.error("No hay presupuestos ACCEPTED en este proyecto.");
+    if (monto > saldo) return toast.error(`El pago (${money(monto)}) excede el saldo pendiente (${money(saldo)}).`);
+    setSaving(true);
+    const { error } = await supabase.from("pagos").insert({
+      proyecto_id: projectId,
+      monto,
+      metodo: pago.metodo,
+      notas: pago.notas || null,
+    });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Pago registrado");
+    setPago({ monto: "", metodo: "TRANSFER", notas: "" });
+    load();
+  };
 
   return (
     <div className="space-y-8">
-      <Link
-        to="/projects"
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-heading transition-colors"
-      >
+      <Link to="/projects" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-heading">
         <ArrowLeft className="h-4 w-4" /> Volver a Proyectos
       </Link>
 
       <header>
-        <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-          /projects/:id
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-primary">/projects/:id</p>
         <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">
-          Proyecto: <span className="text-primary">{id}</span>
+          Proyecto: <span className="text-primary">#{id}</span>{" "}
+          {proyecto && <span className="text-heading">— {proyecto.nombre}</span>}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Token dinámico capturado vía <code className="rounded bg-secondary px-1.5 py-0.5 text-xs">useParams()</code>.
-          Sub-panel de seguimiento de pagos y milestones para este proyecto.
+          Token <code className="rounded bg-secondary px-1.5 py-0.5 text-xs">:id</code> resuelto contra Lovable Cloud.
+          {proyecto?.clientes?.nombre && <> Cliente: <strong>{proyecto.clientes.nombre}</strong></>}
         </p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <section className="lg:col-span-2 rounded-2xl border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-heading">Milestones</h2>
-          <ul className="mt-5 space-y-3">
-            {milestones.map((m) => (
-              <li key={m.name} className="flex items-center gap-3">
-                {m.done ? (
-                  <CheckCircle2 className="h-5 w-5 text-success" />
-                ) : (
-                  <Circle className="h-5 w-5 text-muted-foreground" />
-                )}
-                <span className={`text-sm ${m.done ? "text-heading" : "text-muted-foreground"}`}>
-                  {m.name}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+      {loading ? (
+        <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando…</p>
+      ) : !proyecto ? (
+        <p className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">Proyecto no encontrado.</p>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <section className="lg:col-span-2 space-y-4">
+            <div className="flex gap-2 border-b border-border">
+              {(["budgets", "repo", "payments"] as const).map((t) => (
+                <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 text-sm font-semibold border-b-2 -mb-px ${tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-heading"}`}>
+                  {t === "budgets" ? "Presupuestos" : t === "repo" ? "Repositorio" : "Pagos"}
+                </button>
+              ))}
+            </div>
 
-        <aside className="rounded-2xl border border-border bg-card p-6 space-y-4">
-          <div>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Presupuesto total</p>
-            <p className="mt-1 text-2xl font-bold text-heading">$8,400</p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Cobrado</p>
-            <p className="mt-1 text-2xl font-bold text-success-dark">$5,040</p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Saldo pendiente</p>
-            <p className="mt-1 text-2xl font-bold text-warning-dark">$3,360</p>
-          </div>
-        </aside>
-      </div>
+            {tab === "budgets" && (
+              <div className="rounded-2xl border border-border bg-card p-6">
+                {presupuestos.length === 0 ? <p className="text-sm text-muted-foreground">Sin presupuestos. Crea uno desde /quotes.</p> : (
+                  <ul className="divide-y divide-border">
+                    {presupuestos.map((p) => (
+                      <li key={p.id} className="flex items-center justify-between py-3">
+                        <div>
+                          <p className="font-mono text-sm text-heading">{p.codigo}</p>
+                          <p className="text-xs text-muted-foreground">{p.estado}</p>
+                        </div>
+                        <p className="font-semibold text-heading">{money(p.total)}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {tab === "repo" && (
+              <div className="rounded-2xl border border-border bg-card p-6">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">Repository link</p>
+                {proyecto.repositorio_url ? (
+                  <a href={proyecto.repositorio_url} target="_blank" rel="noreferrer" className="mt-2 block font-mono text-sm text-primary break-all hover:underline">
+                    {proyecto.repositorio_url}
+                  </a>
+                ) : <p className="mt-2 text-sm text-muted-foreground">Sin repositorio asociado.</p>}
+              </div>
+            )}
+
+            {tab === "payments" && (
+              <div className="space-y-4">
+                <form onSubmit={addPago} className="rounded-2xl border border-border bg-card p-5 grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <input type="number" step="0.01" min="0.01" value={pago.monto} onChange={(e) => setPago({ ...pago, monto: e.target.value })} placeholder="Monto" className="rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+                  <select value={pago.metodo} onChange={(e) => setPago({ ...pago, metodo: e.target.value })} className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                    {["TRANSFER", "CARD", "CASH", "CHEQUE", "OTHER"].map((m) => <option key={m}>{m}</option>)}
+                  </select>
+                  <input value={pago.notas} onChange={(e) => setPago({ ...pago, notas: e.target.value })} placeholder="Notas (opcional)" className="rounded-lg border border-border bg-background px-3 py-2 text-sm md:col-span-2" />
+                  <button disabled={saving} className="md:col-span-4 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-70">
+                    <Plus className="h-4 w-4" /> {saving ? "Guardando..." : "Registrar pago"}
+                  </button>
+                </form>
+                <div className="rounded-2xl border border-border bg-card p-6">
+                  {pagos.length === 0 ? <p className="text-sm text-muted-foreground">Aún no se han registrado pagos.</p> : (
+                    <ul className="divide-y divide-border">
+                      {pagos.map((p) => (
+                        <li key={p.id} className="flex items-center justify-between py-3">
+                          <div>
+                            <p className="text-sm font-semibold text-heading">{money(p.monto)} · {p.metodo}</p>
+                            <p className="text-xs text-muted-foreground">{p.fecha_pago}{p.notas ? ` — ${p.notas}` : ""}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+          </section>
+
+          <aside className="rounded-2xl border border-border bg-card p-6 space-y-4 h-fit">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Valor de contrato</p>
+              <p className="mt-1 text-2xl font-bold text-heading">{money(contractValue)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Cobrado</p>
+              <p className="mt-1 text-2xl font-bold text-success-dark">{money(cobrado)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Saldo pendiente</p>
+              <p className="mt-1 text-2xl font-bold text-warning-dark">{money(saldo)}</p>
+            </div>
+          </aside>
+        </div>
+      )}
     </div>
   );
 }

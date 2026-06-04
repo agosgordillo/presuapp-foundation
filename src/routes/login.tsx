@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AuthLayout, AuthField, emailIsValid } from "@/components/auth/AuthLayout";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Iniciar Sesión — PresuApp" }] }),
@@ -18,7 +19,7 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const next: typeof errors = {};
     if (!email) next.email = "El correo es obligatorio.";
@@ -28,10 +29,14 @@ function LoginPage() {
     if (Object.keys(next).length) return;
 
     setLoading(true);
-    setTimeout(() => {
-      toast.success("Sesión iniciada correctamente");
-      navigate({ to: "/dashboard" });
-    }, 1100);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Sesión iniciada correctamente");
+    navigate({ to: "/dashboard" });
   };
 
   return (

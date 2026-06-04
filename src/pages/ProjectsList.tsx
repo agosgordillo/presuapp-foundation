@@ -1,66 +1,97 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowUpRight, Loader2, Plus } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
-const projects = [
-  { id: "project-456", name: "Rediseño Web", client: "Estudio Lumen", progress: 72 },
-  { id: "project-501", name: "App iOS Onboarding", client: "Norte Digital", progress: 35 },
-  { id: "project-612", name: "Branding Boreal", client: "Boreal Studio", progress: 90 },
-];
+type Row = { id: number; nombre: string; estado: string; cliente: string; cliente_id: number };
+type ClienteOpt = { id: number; nombre: string };
 
 export default function ProjectsList() {
+  const [rows, setRows] = useState<Row[]>([]);
+  const [clientes, setClientes] = useState<ClienteOpt[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ nombre: "", descripcion: "", cliente_id: "", repositorio_url: "" });
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const [{ data: p }, { data: c }] = await Promise.all([
+      supabase.from("proyectos").select("id, nombre, estado, cliente_id, clientes!inner(nombre)").order("created_at", { ascending: false }),
+      supabase.from("clientes").select("id, nombre").order("nombre"),
+    ]);
+    setRows((p ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre, estado: r.estado, cliente_id: r.cliente_id, cliente: r.clientes?.nombre ?? "—" })));
+    setClientes((c ?? []) as ClienteOpt[]);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.nombre || !form.cliente_id) return toast.error("Nombre y cliente son obligatorios.");
+    setSaving(true);
+    const { error } = await supabase.from("proyectos").insert({
+      nombre: form.nombre,
+      descripcion: form.descripcion || null,
+      cliente_id: Number(form.cliente_id),
+      estado: "ACTIVE",
+      repositorio_url: form.repositorio_url || null,
+    });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Proyecto creado");
+    setForm({ nombre: "", descripcion: "", cliente_id: "", repositorio_url: "" });
+    setShowForm(false);
+    load();
+  };
+
   return (
     <div className="space-y-8">
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-primary">/projects</p>
-          <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">
-            Proyectos — Pipeline Activo
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
-            Grid panorámico de proyectos en ejecución con progreso visible por entregable.
-          </p>
+          <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">Proyectos — Pipeline Activo</h1>
+          <p className="mt-2 text-sm text-muted-foreground max-w-2xl">Grid de proyectos en ejecución, persistido en Lovable Cloud.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            to="/projects/$id"
-            params={{ id: "project-456" }}
-            className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary-light px-4 py-2 text-sm font-semibold text-primary-dark hover:bg-primary hover:text-primary-foreground transition-colors duration-200 ease-in-out"
-          >
-            Ver project-456 (validar :id) <ArrowUpRight className="h-4 w-4" />
-          </Link>
-          <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary-hover transition-colors duration-200 ease-in-out">
-            <Plus className="h-4 w-4" /> Nuevo proyecto
-          </button>
-        </div>
+        <button onClick={() => setShowForm((s) => !s)} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover">
+          <Plus className="h-4 w-4" /> {showForm ? "Cancelar" : "Nuevo proyecto"}
+        </button>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {projects.map((p) => (
-          <Link
-            key={p.id}
-            to="/projects/$id"
-            params={{ id: p.id }}
-            className="group rounded-2xl border border-border bg-card p-5 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/30"
-          >
-            <p className="text-xs text-muted-foreground">{p.client}</p>
-            <h3 className="mt-1 text-lg font-semibold text-heading group-hover:text-primary transition-colors">
-              {p.name}
-            </h3>
-            <div className="mt-4">
-              <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-                <span>Progreso</span>
-                <span className="text-heading">{p.progress}%</span>
+      {showForm && (
+        <form onSubmit={save} className="rounded-2xl border border-border bg-card p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre del proyecto" className="rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+          <select value={form.cliente_id} onChange={(e) => setForm({ ...form, cliente_id: e.target.value })} className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
+            <option value="">Seleccionar cliente…</option>
+            {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+          </select>
+          <input value={form.repositorio_url} onChange={(e) => setForm({ ...form, repositorio_url: e.target.value })} placeholder="Repositorio (opcional)" className="rounded-lg border border-border bg-background px-3 py-2 text-sm md:col-span-2" />
+          <textarea value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} placeholder="Descripción" className="rounded-lg border border-border bg-background px-3 py-2 text-sm md:col-span-2 min-h-[80px]" />
+          <button disabled={saving} className="md:col-span-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-70">
+            {saving ? "Guardando..." : "Guardar proyecto"}
+          </button>
+        </form>
+      )}
+
+      {loading ? (
+        <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando…</p>
+      ) : rows.length === 0 ? (
+        <p className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">Aún no tienes proyectos.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {rows.map((p) => (
+            <Link key={p.id} to="/projects/$id" params={{ id: String(p.id) }} className="group rounded-2xl border border-border bg-card p-5 hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/30 transition-all">
+              <p className="text-xs text-muted-foreground">{p.cliente}</p>
+              <h3 className="mt-1 text-lg font-semibold text-heading group-hover:text-primary">{p.nombre}</h3>
+              <div className="mt-4 flex items-center justify-between text-xs">
+                <span className="font-semibold text-muted-foreground">{p.estado}</span>
+                <ArrowUpRight className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
-              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-secondary">
-                <div
-                  className="h-full bg-gradient-to-r from-primary to-primary-dark transition-all duration-200 ease-in-out"
-                  style={{ width: `${p.progress}%` }}
-                />
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

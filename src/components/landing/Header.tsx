@@ -29,12 +29,20 @@ export function Header() {
             </a>
           ))}
         </nav>
-        <Link
-          to="/dashboard"
-          className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary-hover transition-colors duration-200 ease-in-out"
-        >
-          Ingresar al Panel
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/login"
+            className="hidden sm:inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:text-heading transition-colors"
+          >
+            Iniciar sesión
+          </Link>
+          <Link
+            to="/login"
+            className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary-hover transition-colors duration-200 ease-in-out"
+          >
+            Ingresar al Panel
+          </Link>
+        </div>
       </div>
     </header>
   );

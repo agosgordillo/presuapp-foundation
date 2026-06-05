@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import type { User } from "@supabase/supabase-js";
+import { toast } from "sonner";
 import {
   LayoutDashboard,
   Users,
@@ -10,7 +12,9 @@ import {
   Menu,
   X,
   ArrowLeft,
+  LogOut,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -20,9 +24,22 @@ const navItems = [
   { to: "/quotes", label: "Presupuestos", icon: FileText },
 ] as const;
 
-export function DashboardLayout({ children }: { children: ReactNode }) {
+export function DashboardLayout({ children, user }: { children: ReactNode; user?: User | null }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+
+  const nombre =
+    (user?.user_metadata?.nombre as string | undefined) ||
+    user?.email?.split("@")[0] ||
+    "Invitado";
+  const initial = nombre.charAt(0).toUpperCase() || "P";
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    toast.success("Sesión cerrada");
+    navigate({ to: "/login" });
+  };
 
   return (
     <div className="min-h-screen bg-surface">
@@ -114,9 +131,21 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
               Sesión activa
             </span>
+            <div className="hidden md:flex flex-col items-end leading-tight">
+              <span className="text-sm font-semibold text-heading">{nombre}</span>
+              <span className="text-[11px] text-muted-foreground">{user?.email}</span>
+            </div>
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-              PA
+              {initial}
             </span>
+            <button
+              onClick={handleSignOut}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-destructive hover:border-destructive transition-colors"
+              aria-label="Cerrar sesión"
+              title="Cerrar sesión"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </header>
 

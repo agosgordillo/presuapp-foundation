@@ -65,7 +65,7 @@ export default function ProjectsList() {
             <option value="">Seleccionar cliente…</option>
             {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
           </select>
-          <input value={form.repositorio_url} onChange={(e) => setForm({ ...form, repositorio_url: e.target.value })} placeholder="Repositorio (opcional)" className="rounded-lg border border-border bg-background px-3 py-2 text-sm md:col-span-2" />
+          
           <textarea value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} placeholder="Descripción" className="rounded-lg border border-border bg-background px-3 py-2 text-sm md:col-span-2 min-h-[80px]" />
           <button disabled={saving} className="md:col-span-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-70">
             {saving ? "Guardando..." : "Guardar proyecto"}

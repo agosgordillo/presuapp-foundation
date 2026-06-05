@@ -1,7 +1,7 @@
 # PresuApp - Smart Budget Management System (Supabase Integrated)
 
 ## 👥 Integrantes del Grupo
-- **Desarrollador/Integrante:** [Insertar Nombre Completo] (Trabajo Individual / Grupal)
+- **Desarrollador/Integrante:** María Agostina Garaizabal Gordillo y Alejandra Judith Labra
 
 ## 📝 Descripción Técnica del Proyecto
 **PresuApp** es una plataforma B2B SaaS integral de gestión de presupuestos y CRM financiero para trabajadores independientes y agencias de servicios. Permite digitalizar el catálogo de servicios, automatizar cotizaciones con cálculo impositivo en tiempo real y realizar el seguimiento transaccional de pagos sobre proyectos activos.

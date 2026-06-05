@@ -12,7 +12,7 @@ export default function ProjectsList() {
   const [clientes, setClientes] = useState<ClienteOpt[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ nombre: "", descripcion: "", cliente_id: "", repositorio_url: "" });
+  const [form, setForm] = useState({ nombre: "", descripcion: "", cliente_id: "" });
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -36,12 +36,11 @@ export default function ProjectsList() {
       descripcion: form.descripcion || null,
       cliente_id: Number(form.cliente_id),
       estado: "ACTIVE",
-      repositorio_url: form.repositorio_url || null,
     });
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Proyecto creado");
-    setForm({ nombre: "", descripcion: "", cliente_id: "", repositorio_url: "" });
+    setForm({ nombre: "", descripcion: "", cliente_id: "" });
     setShowForm(false);
     load();
   };
@@ -66,7 +65,7 @@ export default function ProjectsList() {
             <option value="">Seleccionar cliente…</option>
             {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
           </select>
-          <input value={form.repositorio_url} onChange={(e) => setForm({ ...form, repositorio_url: e.target.value })} placeholder="Repositorio (opcional)" className="rounded-lg border border-border bg-background px-3 py-2 text-sm md:col-span-2" />
+          
           <textarea value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} placeholder="Descripción" className="rounded-lg border border-border bg-background px-3 py-2 text-sm md:col-span-2 min-h-[80px]" />
           <button disabled={saving} className="md:col-span-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-70">
             {saving ? "Guardando..." : "Guardar proyecto"}

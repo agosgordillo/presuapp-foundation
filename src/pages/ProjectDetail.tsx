@@ -1,12 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Loader2, Plus } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, Pencil, Plus, Trash2, X, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-type Proyecto = { id: number; nombre: string; descripcion: string | null; estado: string; repositorio_url: string | null; cliente_id: number; clientes?: { nombre: string } };
+type Proyecto = { id: number; nombre: string; descripcion: string | null; estado: string; cliente_id: number; clientes?: { nombre: string } };
 type Pres = { id: number; codigo: string; total: number; estado: string };
 type Pago = { id: number; fecha_pago: string; monto: number; metodo: string; notas: string | null };
+type Repo = { id: number; nombre: string; url: string };
 
 const money = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 
@@ -16,9 +17,26 @@ export default function ProjectDetail({ id }: { id: string }) {
   const [proyecto, setProyecto] = useState<Proyecto | null>(null);
   const [presupuestos, setPresupuestos] = useState<Pres[]>([]);
   const [pagos, setPagos] = useState<Pago[]>([]);
+  const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
   const [pago, setPago] = useState({ monto: "", metodo: "TRANSFER", notas: "" });
   const [saving, setSaving] = useState(false);
+
+  // Repo state
+  const [showRepoForm, setShowRepoForm] = useState(false);
+  const [repoForm, setRepoForm] = useState({ nombre: "", url: "" });
+  const [repoSaving, setRepoSaving] = useState(false);
+  const [editingRepoId, setEditingRepoId] = useState<number | null>(null);
+  const [editRepo, setEditRepo] = useState({ nombre: "", url: "" });
+
+  const loadRepos = async () => {
+    const { data } = await supabase
+      .from("proyecto_repositorios")
+      .select("id, nombre, url")
+      .eq("proyecto_id", projectId)
+      .order("created_at", { ascending: true });
+    setRepos((data ?? []) as Repo[]);
+  };
 
   const load = async () => {
     if (!Number.isFinite(projectId)) return setLoading(false);
@@ -30,6 +48,7 @@ export default function ProjectDetail({ id }: { id: string }) {
     setProyecto(pr as any);
     setPresupuestos((pres ?? []).map((r: any) => ({ ...r, total: Number(r.total) })));
     setPagos((pgs ?? []).map((r: any) => ({ ...r, monto: Number(r.monto) })));
+    await loadRepos();
     setLoading(false);
   };
   useEffect(() => { load(); }, [projectId]);
@@ -56,6 +75,55 @@ export default function ProjectDetail({ id }: { id: string }) {
     toast.success("Pago registrado");
     setPago({ monto: "", metodo: "TRANSFER", notas: "" });
     load();
+  };
+
+  const addRepo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!repoForm.nombre.trim() || !repoForm.url.trim()) return toast.error("Nombre y URL son obligatorios.");
+    setRepoSaving(true);
+    const { error } = await supabase.from("proyecto_repositorios").insert({
+      proyecto_id: projectId,
+      nombre: repoForm.nombre.trim(),
+      url: repoForm.url.trim(),
+    });
+    setRepoSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Repositorio agregado");
+    setRepoForm({ nombre: "", url: "" });
+    setShowRepoForm(false);
+    loadRepos();
+  };
+
+  const startEditRepo = (r: Repo) => {
+    setEditingRepoId(r.id);
+    setEditRepo({ nombre: r.nombre, url: r.url });
+  };
+
+  const saveEditRepo = async (id: number) => {
+    if (!editRepo.nombre.trim() || !editRepo.url.trim()) return toast.error("Nombre y URL son obligatorios.");
+    const { error } = await supabase
+      .from("proyecto_repositorios")
+      .update({ nombre: editRepo.nombre.trim(), url: editRepo.url.trim() })
+      .eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Repositorio actualizado");
+    setEditingRepoId(null);
+    loadRepos();
+  };
+
+  const deleteRepo = async (r: Repo) => {
+    toast(`Eliminar "${r.nombre}"?`, {
+      action: {
+        label: "Eliminar",
+        onClick: async () => {
+          const { error } = await supabase.from("proyecto_repositorios").delete().eq("id", r.id);
+          if (error) return toast.error(error.message);
+          toast.success("Repositorio eliminado");
+          loadRepos();
+        },
+      },
+      cancel: { label: "Cancelar", onClick: () => {} },
+    });
   };
 
   return (
@@ -110,13 +178,93 @@ export default function ProjectDetail({ id }: { id: string }) {
             )}
 
             {tab === "repo" && (
-              <div className="rounded-2xl border border-border bg-card p-6">
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">Repository link</p>
-                {proyecto.repositorio_url ? (
-                  <a href={proyecto.repositorio_url} target="_blank" rel="noreferrer" className="mt-2 block font-mono text-sm text-primary break-all hover:underline">
-                    {proyecto.repositorio_url}
-                  </a>
-                ) : <p className="mt-2 text-sm text-muted-foreground">Sin repositorio asociado.</p>}
+              <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground">Repositorios del proyecto</p>
+                    <p className="text-sm text-heading">{repos.length} registrado{repos.length === 1 ? "" : "s"}</p>
+                  </div>
+                  {repos.length > 0 && !showRepoForm && (
+                    <button onClick={() => setShowRepoForm(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-hover">
+                      <Plus className="h-3.5 w-3.5" /> Agregar Repositorio
+                    </button>
+                  )}
+                </div>
+
+                {showRepoForm && (
+                  <form onSubmit={addRepo} className="rounded-xl border border-border bg-background p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <input
+                      value={repoForm.nombre}
+                      onChange={(e) => setRepoForm({ ...repoForm, nombre: e.target.value })}
+                      placeholder="Nombre (e.g. Frontend)"
+                      maxLength={100}
+                      className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                    />
+                    <input
+                      value={repoForm.url}
+                      onChange={(e) => setRepoForm({ ...repoForm, url: e.target.value })}
+                      placeholder="URL del repositorio"
+                      maxLength={255}
+                      className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                    />
+                    <div className="md:col-span-2 flex gap-2 justify-end">
+                      <button type="button" onClick={() => { setShowRepoForm(false); setRepoForm({ nombre: "", url: "" }); }} className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-heading">
+                        Cancelar
+                      </button>
+                      <button disabled={repoSaving} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-70">
+                        {repoSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                        Guardar
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {repos.length === 0 && !showRepoForm ? (
+                  <div className="rounded-xl border border-dashed border-border p-8 text-center space-y-3">
+                    <p className="text-sm text-muted-foreground">Sin repositorio asociado.</p>
+                    <button onClick={() => setShowRepoForm(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover">
+                      <Plus className="h-4 w-4" /> Agregar Repositorio
+                    </button>
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-border">
+                    {repos.map((r) => (
+                      <li key={r.id} className="py-3">
+                        {editingRepoId === r.id ? (
+                          <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_auto] gap-2 items-center">
+                            <input value={editRepo.nombre} onChange={(e) => setEditRepo({ ...editRepo, nombre: e.target.value })} maxLength={100} className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm" />
+                            <input value={editRepo.url} onChange={(e) => setEditRepo({ ...editRepo, url: e.target.value })} maxLength={255} className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm" />
+                            <div className="flex gap-1 justify-end">
+                              <button onClick={() => saveEditRepo(r.id)} className="rounded-lg p-1.5 text-success-dark hover:bg-secondary" title="Guardar">
+                                <Check className="h-4 w-4" />
+                              </button>
+                              <button onClick={() => setEditingRepoId(null)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary" title="Cancelar">
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold text-heading">{r.nombre}</p>
+                              <a href={r.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-mono text-xs text-primary break-all hover:underline">
+                                {r.url} <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                              </a>
+                            </div>
+                            <div className="flex gap-1 flex-shrink-0">
+                              <button onClick={() => startEditRepo(r)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-heading" title="Editar">
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              <button onClick={() => deleteRepo(r)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-destructive" title="Eliminar">
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
 

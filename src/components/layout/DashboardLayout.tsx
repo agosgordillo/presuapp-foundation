@@ -131,9 +131,21 @@ export function DashboardLayout({ children, user }: { children: ReactNode; user?
               <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
               Sesión activa
             </span>
+            <div className="hidden md:flex flex-col items-end leading-tight">
+              <span className="text-sm font-semibold text-heading">{nombre}</span>
+              <span className="text-[11px] text-muted-foreground">{user?.email}</span>
+            </div>
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-              PA
+              {initial}
             </span>
+            <button
+              onClick={handleSignOut}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-destructive hover:border-destructive transition-colors"
+              aria-label="Cerrar sesión"
+              title="Cerrar sesión"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </header>
 

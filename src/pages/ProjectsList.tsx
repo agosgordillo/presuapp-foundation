@@ -12,7 +12,7 @@ export default function ProjectsList() {
   const [clientes, setClientes] = useState<ClienteOpt[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ nombre: "", descripcion: "", cliente_id: "", repositorio_url: "" });
+  const [form, setForm] = useState({ nombre: "", descripcion: "", cliente_id: "" });
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -36,12 +36,11 @@ export default function ProjectsList() {
       descripcion: form.descripcion || null,
       cliente_id: Number(form.cliente_id),
       estado: "ACTIVE",
-      repositorio_url: form.repositorio_url || null,
     });
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Proyecto creado");
-    setForm({ nombre: "", descripcion: "", cliente_id: "", repositorio_url: "" });
+    setForm({ nombre: "", descripcion: "", cliente_id: "" });
     setShowForm(false);
     load();
   };

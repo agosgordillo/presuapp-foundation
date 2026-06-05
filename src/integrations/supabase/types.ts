@@ -213,6 +213,38 @@ export type Database = {
           },
         ]
       }
+      proyecto_repositorios: {
+        Row: {
+          created_at: string
+          id: number
+          nombre: string
+          proyecto_id: number
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          nombre: string
+          proyecto_id: number
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          nombre?: string
+          proyecto_id?: number
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proyecto_repositorios_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proyectos: {
         Row: {
           cliente_id: number
@@ -221,7 +253,6 @@ export type Database = {
           estado: string
           id: number
           nombre: string
-          repositorio_url: string | null
         }
         Insert: {
           cliente_id: number
@@ -230,7 +261,6 @@ export type Database = {
           estado?: string
           id?: never
           nombre: string
-          repositorio_url?: string | null
         }
         Update: {
           cliente_id?: number
@@ -239,7 +269,6 @@ export type Database = {
           estado?: string
           id?: never
           nombre?: string
-          repositorio_url?: string | null
         }
         Relationships: [
           {

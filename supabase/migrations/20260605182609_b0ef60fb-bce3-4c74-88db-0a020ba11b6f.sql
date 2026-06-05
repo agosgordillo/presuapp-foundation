@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.current_usuario_id() FROM anon, PUBLIC;

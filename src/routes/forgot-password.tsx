@@ -23,7 +23,7 @@ function ForgotPasswordPage() {
     setError(undefined);
     setLoading(true);
     const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login`,
+      redirectTo: `${window.location.origin}/update-password`,
     });
     setLoading(false);
     if (err) {

@@ -1,103 +1,192 @@
-# PresuApp - Smart Budget Management System (Supabase Integrated)
+# PresuApp
 
-## 👥 Integrantes del Grupo
-- **Desarrollador/Integrante:** María Agostina Garaizabal Gordillo y Alejandra Judith Labra
-
-## 📝 Descripción Técnica del Proyecto
-**PresuApp** es una plataforma B2B SaaS integral de gestión de presupuestos y CRM financiero para trabajadores independientes y agencias de servicios. Permite digitalizar el catálogo de servicios, automatizar cotizaciones con cálculo impositivo en tiempo real y realizar el seguimiento transaccional de pagos sobre proyectos activos.
+Plataforma SaaS de gestión de presupuestos y CRM financiero para profesionales independientes y agencias de servicios.
 
 ---
 
-## 📐 Arquitectura del Ecosistema y Modelo de Datos
-El sistema acopla una arquitectura SPA en el cliente con un motor de persistencia relacional en la nube (PostgreSQL administrado por Lovable Cloud / Supabase):
+## 1. Identificación
+
+- **Nombre del proyecto:** PresuApp
+- **Integrantes del grupo:**
+  - María Agostina Garaizabal Gordillo
+  - Alejandra Judith Labra
+
+---
+
+## 2. Descripción Técnica
+
+**Propósito.** PresuApp digitaliza el ciclo completo de cotización y cobranza de servicios profesionales: catálogo de servicios reutilizables, generación de presupuestos con cálculo impositivo en tiempo real, seguimiento de proyectos y conciliación de pagos.
+
+**Problemática que resuelve.** Los trabajadores independientes y pequeñas agencias suelen gestionar presupuestos en planillas dispersas, sin trazabilidad entre el monto cotizado, el contrato aceptado y los pagos efectivamente cobrados. Esto provoca errores de facturación, sobrecobros, pérdida de información histórica y falta de visibilidad sobre el saldo real de cada proyecto. PresuApp centraliza clientes, proyectos, presupuestos, repositorios y pagos en una única base relacional con reglas de negocio que evitan inconsistencias (por ejemplo, impide registrar pagos que superen el valor del contrato aceptado).
+
+**Perfil de usuario.**
+- Freelancers de servicios profesionales (desarrollo, diseño, consultoría).
+- Pequeñas y medianas agencias B2B que emiten presupuestos recurrentes.
+- Equipos que necesitan separar su cartera de clientes, su pipeline de proyectos y su flujo de cobranzas en una única herramienta multi-tenant.
+
+---
+
+## 3. Arquitectura del Proyecto
+
+PresuApp es una SPA construida con **TanStack Start** (file-based routing sobre React 19 + Vite 7) acoplada a **Lovable Cloud (Supabase)** como motor de persistencia, autenticación y Row-Level Security.
+
+### Estructura de carpetas
 
 ```text
 src/
 ├── components/
-│   ├── ui/          # Elementos atómicos del Design System (Botones, Inputs, Badges)
-│   ├── landing/     # Secciones de la Landing Page de marketing (Hero, FAQ)
-│   ├── layout/      # Envoltorio estructural de la aplicación (DashboardLayout)
-│   └── showcase/    # Panel de pruebas estáticas de componentes (Showcase)
+│   ├── auth/         # Layout y helpers de las pantallas de autenticación
+│   ├── landing/      # Secciones de la landing comercial (Hero, Features, Pricing, FAQ, Footer)
+│   ├── layout/       # DashboardLayout (sidebar + topbar autenticado)
+│   ├── showcase/     # Panel de pruebas estáticas del Design System
+│   └── ui/           # Primitivas Shadcn/UI (Button, Input, Dialog, Table, Toast…)
+├── hooks/            # Hooks reutilizables (use-mobile, etc.)
 ├── integrations/
-│   └── supabase/    # Cliente Supabase autogenerado + tipos relacionales (Database)
-├── pages/           # Controladores de vista interactivos vinculados a la base de datos
-│   ├── auth/        # Vistas de acceso (Login, Registro, Recuperación)
-│   ├── LandingPage.tsx
-│   ├── Dashboard.tsx       # Métricas agregadas en vivo (presupuestos + pagos)
-│   ├── ClientsList.tsx     # Cartera de clientes con alta y enlace dinámico
-│   ├── ClientDetail.tsx    # Enrutamiento dinámico interactivo con Supabase (:id)
-│   ├── ProjectsList.tsx    # Pipeline activo con alta de proyectos
-│   ├── ProjectDetail.tsx   # Monitoreo de presupuestos y conciliación de cobros (:id)
-│   ├── CatalogList.tsx     # Inventario de servicios reutilizables
-│   └── QuotesList.tsx      # Builder multi-ítem con motor de cálculo
-├── routes/          # Mapeo de rutas SPA file-based (TanStack Router)
-└── main.tsx
+│   └── supabase/     # Cliente Supabase autogenerado, tipos Database y helpers de auth
+├── lib/              # Utilidades, server functions y configuración de errores
+├── pages/            # Vistas de negocio invocadas desde las rutas
+│   ├── Dashboard.tsx
+│   ├── ClientsList.tsx · ClientDetail.tsx
+│   ├── ProjectsList.tsx · ProjectDetail.tsx
+│   ├── CatalogList.tsx
+│   └── QuotesList.tsx
+├── routes/           # File-based routing (TanStack Router)
+│   ├── __root.tsx              # Shell de la app
+│   ├── index.tsx               # Landing pública
+│   ├── login.tsx · register.tsx
+│   ├── forgot-password.tsx · update-password.tsx
+│   └── _app.*.tsx              # Rutas autenticadas (dashboard, clients, projects, catalog, quotes)
+├── styles.css        # Tailwind v4 + design tokens
+├── router.tsx        # Configuración del router
+└── start.ts          # Bootstrap de TanStack Start (middlewares globales)
+
+supabase/
+└── migrations/       # Migraciones SQL versionadas (esquema, RLS, triggers, funciones)
 ```
 
----
+### Organización de componentes
 
-## 🗄️ Esquema Relacional (PostgreSQL en Supabase)
-Provisionado vía migración estricta, con Row-Level Security activa y todas las operaciones aisladas por usuario autenticado (`auth.uid()`).
+- **`components/ui`** contiene los átomos del Design System (Shadcn/UI tipados con Tailwind v4).
+- **`components/landing`** agrupa las secciones de marketing renderizadas en `/`.
+- **`components/layout`** expone el `DashboardLayout` que envuelve todas las rutas autenticadas bajo `_app`.
+- **`pages`** concentra la lógica de cada vista (queries a Supabase, validaciones, formularios) y se monta desde los archivos `src/routes/_app.*.tsx`.
+- **`integrations/supabase`** es la única vía de acceso a la base: el cliente y los tipos se autogeneran a partir del esquema real.
+
+### Modelo de datos (PostgreSQL · RLS activa)
 
 | Tabla | Campos clave | Relación |
 | --- | --- | --- |
-| `usuarios` | `id` (INT PK), `auth_user_id` (UUID → auth.users), `nombre`, `email`, `empresa_nombre` | Tenant raíz |
-| `clientes` | `id`, `usuario_id` (FK → usuarios), `nombre`, `email`, `telefono`, `empresa` | N:1 usuarios |
-| `proyectos` | `id`, `cliente_id` (FK → clientes), `nombre`, `descripcion`, `estado`, `repositorio_url` | N:1 clientes |
-| `catalogo_items` | `id`, `usuario_id`, `nombre`, `descripcion`, `tipo_unidad` (HR, U, SVC, MES, PROY), `precio_referecia` | N:1 usuarios |
-| `presupuestos` | `id`, `proyecto_id`, `codigo` (#001), `fecha_emision`, `estado` (DRAFT…REJECTED), `subtotal`, `impuestos`, `total`, `pdf_url` | N:1 proyectos |
-| `presupuesto_items` | `id`, `presupuesto_id`, `nombre_historico`, `tipo_unidad_historica`, `cantidad`, `precio_unitario`, `subtotal_item` | N:1 presupuestos |
-| `pagos` | `id`, `proyecto_id`, `fecha_pago`, `monto`, `metodo` (TRANSFER…OTHER), `notas` | N:1 proyectos |
+| `usuarios` | `id`, `auth_user_id` (→ `auth.users`), `nombre`, `email`, `empresa_nombre` | Tenant raíz |
+| `clientes` | `id`, `usuario_id`, `nombre`, `email`, `telefono`, `empresa` | N:1 usuarios |
+| `proyectos` | `id`, `cliente_id`, `nombre`, `descripcion`, `estado` | N:1 clientes |
+| `proyecto_repositorios` | `id`, `proyecto_id`, `nombre`, `url` | N:1 proyectos |
+| `catalogo_items` | `id`, `usuario_id`, `nombre`, `tipo_unidad`, `precio_referecia` | N:1 usuarios |
+| `presupuestos` | `id`, `proyecto_id`, `codigo`, `estado`, `subtotal`, `impuestos`, `total` | N:1 proyectos |
+| `presupuesto_items` | `id`, `presupuesto_id`, `nombre_historico`, `cantidad`, `precio_unitario`, `subtotal_item` | N:1 presupuestos |
+| `pagos` | `id`, `proyecto_id`, `fecha_pago`, `monto`, `metodo` | N:1 proyectos |
 
-**Trigger automatizado:** `on_auth_user_created` aprovisiona la fila correspondiente en `usuarios` cada vez que se registra un nuevo usuario en `auth.users`, asegurando integridad referencial sin intervención manual.
+Triggers y funciones clave:
 
----
-
-## 🔐 Módulo de Autenticación
-- **`/register`** — `supabase.auth.signUp` con metadata `nombre` + `empresa_nombre` que alimenta el trigger.
-- **`/login`** — `supabase.auth.signInWithPassword`, sesión persistida y redirección a `/dashboard`.
-- **`/forgot-password`** — `supabase.auth.resetPasswordForEmail` con feedback de éxito (`#DCFCE7`).
+- `on_auth_user_created` aprovisiona la fila correspondiente en `usuarios` al registrarse un usuario en `auth.users`.
+- `current_usuario_id()` (`SECURITY DEFINER`) resuelve el `usuario_id` del tenant autenticado y es la base de todas las policies RLS.
+- `prevent_auth_user_id_change` impide reasignar el vínculo entre un perfil y su cuenta de auth.
 
 ---
 
-## 🧮 Leyes de Negocio Preservadas
-1. **Motor de cálculo client-side (`/quotes`):** subtotales, impuestos (% configurable) y total se recalculan en vivo dentro del estado React antes de persistir. Los `subtotal_item` se computan por línea y se insertan junto al maestro `presupuestos` en una secuencia atómica.
-2. **Regla anti-overflow de pagos (`/projects/:id`):** Antes de insertar en `pagos`, el cliente calcula `valor_contrato = Σ presupuestos.total WHERE estado='ACCEPTED'` y `saldo = contrato − Σ pagos`. Cualquier monto que exceda dispara un `toast.error` inmediato y aborta el insert.
+## 4. Objetivos y Tecnologías
 
----
+### Objetivos alcanzados en esta fase
 
-## 🎨 Design System Tokens
+- **Autenticación completa** con Supabase Auth: registro, login, recuperación de contraseña (`/forgot-password` → `/update-password`) y sesión persistida.
+- **Multi-tenant seguro** mediante RLS: cada usuario sólo accede a sus propios clientes, proyectos, presupuestos, repositorios y pagos.
+- **Gestión de clientes** con alta, listado y ficha de detalle dinámica.
+- **Pipeline de proyectos** con tabs internas (Presupuestos, Repositorios, Pagos) y soporte para múltiples repositorios por proyecto con edición inline.
+- **Catálogo de servicios** reutilizable con tipos de unidad (HR, U, SVC, MES, PROY) y precio de referencia.
+- **Builder de presupuestos** multi-ítem con motor de cálculo client-side (subtotales, impuestos configurables y total recalculados en vivo).
+- **Conciliación de pagos** con regla anti-overflow: ningún pago puede superar `Σ presupuestos.total (estado=ACCEPTED) − Σ pagos previos`.
+- **Dashboard de KPIs** con métricas agregadas en tiempo real (presupuestos activos, cobros, saldo).
+- **Hardening de seguridad**: políticas RLS granulares, revocación de privilegios sobre el rol `anon`, columna de contraseña en claro eliminada y triggers que bloquean escaladas de privilegio.
+
+### Stack tecnológico
+
+- **Frontend:** React 19, TypeScript estricto, TanStack Router/Start, Vite 7, Tailwind CSS v4, Shadcn/UI, Lucide Icons, Sonner (toasts).
+- **Backend gestionado:** Lovable Cloud (Supabase) — PostgreSQL, Auth, Row-Level Security, Storage.
+- **Capa de acceso a datos:** cliente Supabase tipado autogenerado en `src/integrations/supabase`.
+- **Tooling:** ESLint, Prettier, Bun (gestor de paquetes y lockfile), migraciones SQL versionadas en `supabase/migrations`.
+
+### Design System (tokens principales)
+
 - **Primary:** `#2563EB` · **Hover:** `#1D4ED8` · **Light:** `#DBEAFE`
-- **Success:** `#10B981` (light `#DCFCE7`, dark `#166534`)
-- **Warning:** `#F59E0B` · **Destructive:** `#EF4444`
+- **Success:** `#10B981` · **Warning:** `#F59E0B` · **Destructive:** `#EF4444`
 - **Neutrals:** Surface `#F9FAFB`, Border `#E5E7EB`, Muted `#6B7280`, Heading `#111827`
-- **Tipografía:** Inter (400-800)
+- **Tipografía:** Inter (400–800)
 
 ---
 
-## 🛠️ Stack Tecnológico
-- **Frontend:** React 19, TanStack Router/Start, Vite 7, TypeScript estricto, Tailwind CSS v4, Shadcn/UI.
-- **Backend (cloud):** Lovable Cloud (Supabase) — PostgreSQL + Auth + RLS.
-- **Validación UX:** Sonner toasts, validaciones inline con iconografía Lucide.
+## 5. Guía de Instalación
 
----
+### Requisitos previos
 
-## 🚀 Instalación y Ejecución
+- Node.js 20+ (o Bun 1.1+).
+- npm 10+ (o el gestor equivalente).
+- Una instancia de Supabase con el esquema aplicado desde `supabase/migrations/`.
+
+### 1. Clonar el repositorio
+
+```bash
+git clone <URL_DEL_REPOSITORIO> presuapp
+cd presuapp
+```
+
+### 2. Instalar dependencias
+
 ```bash
 npm install
+```
+
+### 3. Configurar variables de entorno
+
+Crear un archivo `.env` en la raíz con las credenciales públicas del proyecto Supabase:
+
+```bash
+VITE_SUPABASE_URL="https://<tu-proyecto>.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_KEY="<anon-public-key>"
+VITE_SUPABASE_PROJECT_ID="<project-ref>"
+```
+
+> En entornos gestionados por Lovable Cloud estas variables se inyectan automáticamente y no requieren configuración manual.
+
+### 4. Aplicar el esquema de base de datos
+
+Ejecutar las migraciones de `supabase/migrations/` en orden cronológico contra la instancia Supabase (vía Supabase CLI, SQL editor o el flujo de Lovable Cloud). Esto crea tablas, policies RLS, triggers y la función `current_usuario_id()`.
+
+### 5. Ejecutar el servidor de desarrollo
+
+```bash
 npm run dev
 ```
-Accede a `http://localhost:5173`. La configuración de Supabase (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`) se inyecta automáticamente por Lovable Cloud.
+
+La aplicación queda disponible en `http://localhost:5173`.
+
+### 6. Scripts adicionales
+
+```bash
+npm run build     # Build de producción
+npm run preview   # Servir el build localmente
+npm run lint      # Análisis estático con ESLint
+```
 
 ---
 
-## 🧭 Mapa de Rutas SPA
+## Mapa de Rutas
+
 | Ruta | Descripción |
 | --- | --- |
-| `/` | Landing comercial + UI Showcase |
-| `/login`, `/register`, `/forgot-password` | Módulo de autenticación |
+| `/` | Landing comercial pública |
+| `/login` · `/register` | Acceso y registro |
+| `/forgot-password` · `/update-password` | Flujo de recuperación de contraseña |
 | `/dashboard` | KPIs agregados en tiempo real |
-| `/clients`, `/clients/:id` | Cartera + ficha cliente dinámica |
-| `/projects`, `/projects/:id` | Pipeline + tabs (Presupuestos / Repositorio / Pagos) |
-| `/catalog` | Inventario de servicios |
+| `/clients` · `/clients/:id` | Cartera de clientes y ficha de detalle |
+| `/projects` · `/projects/:id` | Pipeline y detalle de proyecto (tabs: Presupuestos · Repositorio · Pagos) |
+| `/catalog` | Inventario de servicios reutilizables |
 | `/quotes` | Builder de presupuestos con motor de cálculo |

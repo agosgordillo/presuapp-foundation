@@ -288,7 +288,6 @@ export type Database = {
           empresa_nombre: string
           id: number
           nombre: string
-          password: string
         }
         Insert: {
           auth_user_id?: string | null
@@ -297,7 +296,6 @@ export type Database = {
           empresa_nombre: string
           id?: never
           nombre: string
-          password?: string
         }
         Update: {
           auth_user_id?: string | null
@@ -306,7 +304,6 @@ export type Database = {
           empresa_nombre?: string
           id?: never
           nombre?: string
-          password?: string
         }
         Relationships: []
       }

@@ -96,7 +96,9 @@ export default function QuotesList() {
     setSaving(false);
     if (itErr) return toast.error(itErr.message);
 
-    toast.success(`Presupuesto ${codigo} creado`);
+    toast.success(`Presupuesto ${codigo} creado`, {
+      action: { label: "Descargar PDF", onClick: () => downloadPdf(ins.id) },
+    });
     setShowForm(false);
     setProyectoId("");
     setItems([{ nombre: "", tipo_unidad: "HR", cantidad: "1", precio_unitario: "0" }]);
@@ -108,6 +110,15 @@ export default function QuotesList() {
     if (error) return toast.error(error.message);
     toast.success(`Estado: ${estado}`);
     load();
+  };
+
+  const downloadPdf = async (id: number) => {
+    try {
+      await downloadQuotePdf(id);
+      toast.success("PDF descargado");
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo generar el PDF.");
+    }
   };
 
   return (

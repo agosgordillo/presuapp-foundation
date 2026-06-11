@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadQuotePdf } from "@/lib/pdf/quotePdf";
 
-type Quote = { id: number; codigo: string; total: number; estado: string; proyecto: string; cliente: string };
+type Quote = { id: number; codigo: string; fecha_emision: string | null; total: number; subtotal: number; impuestos: number; estado: string; proyecto: string; cliente: string; cliente_email: string | null };
 type Proyecto = { id: number; nombre: string; clientes?: { nombre: string } };
 
 const STATUSES = ["DRAFT", "SENT", "VIEWED", "ACCEPTED", "REJECTED"] as const;
@@ -31,12 +31,15 @@ export default function QuotesList() {
 
   const load = async () => {
     const [{ data: q }, { data: p }] = await Promise.all([
-      supabase.from("presupuestos").select("id, codigo, total, estado, proyectos!inner(nombre, clientes!inner(nombre))").order("created_at", { ascending: false }),
+      supabase.from("presupuestos").select("id, codigo, fecha_emision, subtotal, impuestos, total, estado, proyectos!inner(nombre, clientes!inner(nombre, email))").order("created_at", { ascending: false }),
       supabase.from("proyectos").select("id, nombre, clientes(nombre)").order("created_at", { ascending: false }),
     ]);
     setRows((q ?? []).map((r: any) => ({
-      id: r.id, codigo: r.codigo, total: Number(r.total), estado: r.estado,
-      proyecto: r.proyectos?.nombre ?? "—", cliente: r.proyectos?.clientes?.nombre ?? "—",
+      id: r.id, codigo: r.codigo, fecha_emision: r.fecha_emision,
+      subtotal: Number(r.subtotal), impuestos: Number(r.impuestos), total: Number(r.total), estado: r.estado,
+      proyecto: r.proyectos?.nombre ?? "—",
+      cliente: r.proyectos?.clientes?.nombre ?? "—",
+      cliente_email: r.proyectos?.clientes?.email ?? null,
     })));
     setProyectos((p ?? []) as any);
     setLoading(false);
@@ -97,7 +100,7 @@ export default function QuotesList() {
     if (itErr) return toast.error(itErr.message);
 
     toast.success(`Presupuesto ${codigo} creado`, {
-      action: { label: "Descargar PDF", onClick: () => downloadPdf(ins.id) },
+      action: { label: "Descargar PDF", onClick: () => downloadPdfById(ins.id) },
     });
     setShowForm(false);
     setProyectoId("");
@@ -112,13 +115,33 @@ export default function QuotesList() {
     load();
   };
 
-  const downloadPdf = async (id: number) => {
+  const downloadPdf = async (quote: Quote) => {
     try {
-      await downloadQuotePdf(id);
+      await downloadQuotePdf(quote);
       toast.success("PDF descargado");
     } catch (e: any) {
       toast.error(e?.message ?? "No se pudo generar el PDF.");
     }
+  };
+
+  const downloadPdfById = async (id: number) => {
+    const row = rows.find((r) => r.id === id);
+    if (row) return downloadPdf(row);
+    // Freshly created quote may not be in rows yet — fetch minimally
+    const { data, error } = await supabase
+      .from("presupuestos")
+      .select("id, codigo, fecha_emision, subtotal, impuestos, total, estado, proyectos!inner(nombre, clientes!inner(nombre, email))")
+      .eq("id", id)
+      .single();
+    if (error || !data) return toast.error(error?.message ?? "No se pudo cargar.");
+    const r: any = data;
+    return downloadPdf({
+      id: r.id, codigo: r.codigo, fecha_emision: r.fecha_emision,
+      subtotal: Number(r.subtotal), impuestos: Number(r.impuestos), total: Number(r.total), estado: r.estado,
+      proyecto: r.proyectos?.nombre ?? "—",
+      cliente: r.proyectos?.clientes?.nombre ?? "—",
+      cliente_email: r.proyectos?.clientes?.email ?? null,
+    });
   };
 
   return (
@@ -205,7 +228,7 @@ export default function QuotesList() {
                   <td className="px-5 py-4 text-right font-semibold text-heading">{money(q.total)}</td>
                   <td className="px-5 py-4 text-right">
                     <button
-                      onClick={() => downloadPdf(q.id)}
+                      onClick={() => downloadPdf(q)}
                       title="Descargar PDF"
                       className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
                     >

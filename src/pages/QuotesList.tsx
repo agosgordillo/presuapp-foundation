@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Check, Loader2, Plus, Trash2 } from "lucide-react";
+import { Check, Download, FileText, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { downloadQuotePdf } from "@/lib/pdf/quotePdf";
 
 type Quote = { id: number; codigo: string; total: number; estado: string; proyecto: string; cliente: string };
 type Proyecto = { id: number; nombre: string; clientes?: { nombre: string } };
@@ -95,7 +96,9 @@ export default function QuotesList() {
     setSaving(false);
     if (itErr) return toast.error(itErr.message);
 
-    toast.success(`Presupuesto ${codigo} creado`);
+    toast.success(`Presupuesto ${codigo} creado`, {
+      action: { label: "Descargar PDF", onClick: () => downloadPdf(ins.id) },
+    });
     setShowForm(false);
     setProyectoId("");
     setItems([{ nombre: "", tipo_unidad: "HR", cantidad: "1", precio_unitario: "0" }]);
@@ -107,6 +110,15 @@ export default function QuotesList() {
     if (error) return toast.error(error.message);
     toast.success(`Estado: ${estado}`);
     load();
+  };
+
+  const downloadPdf = async (id: number) => {
+    try {
+      await downloadQuotePdf(id);
+      toast.success("PDF descargado");
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo generar el PDF.");
+    }
   };
 
   return (
@@ -173,6 +185,7 @@ export default function QuotesList() {
                 <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Proyecto / Cliente</th>
                 <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Estado</th>
                 <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Total</th>
+                <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">PDF</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -190,6 +203,17 @@ export default function QuotesList() {
                     {q.estado === "ACCEPTED" && <Check className="inline h-3 w-3 ml-1 text-success" />}
                   </td>
                   <td className="px-5 py-4 text-right font-semibold text-heading">{money(q.total)}</td>
+                  <td className="px-5 py-4 text-right">
+                    <button
+                      onClick={() => downloadPdf(q.id)}
+                      title="Descargar PDF"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      <Download className="h-3.5 w-3.5" />
+                      PDF
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

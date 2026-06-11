@@ -100,7 +100,7 @@ export default function QuotesList() {
     if (itErr) return toast.error(itErr.message);
 
     toast.success(`Presupuesto ${codigo} creado`, {
-      action: { label: "Descargar PDF", onClick: () => downloadPdf(ins.id) },
+      action: { label: "Descargar PDF", onClick: () => downloadPdfById(ins.id) },
     });
     setShowForm(false);
     setProyectoId("");
@@ -228,7 +228,7 @@ export default function QuotesList() {
                   <td className="px-5 py-4 text-right font-semibold text-heading">{money(q.total)}</td>
                   <td className="px-5 py-4 text-right">
                     <button
-                      onClick={() => downloadPdf(q.id)}
+                      onClick={() => downloadPdf(q)}
                       title="Descargar PDF"
                       className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
                     >

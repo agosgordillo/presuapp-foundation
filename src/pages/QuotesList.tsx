@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Check, Loader2, Plus, Trash2 } from "lucide-react";
+import { Check, Download, FileText, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { downloadQuotePdf } from "@/lib/pdf/quotePdf";
 
 type Quote = { id: number; codigo: string; total: number; estado: string; proyecto: string; cliente: string };
 type Proyecto = { id: number; nombre: string; clientes?: { nombre: string } };

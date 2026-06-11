@@ -31,12 +31,15 @@ export default function QuotesList() {
 
   const load = async () => {
     const [{ data: q }, { data: p }] = await Promise.all([
-      supabase.from("presupuestos").select("id, codigo, total, estado, proyectos!inner(nombre, clientes!inner(nombre))").order("created_at", { ascending: false }),
+      supabase.from("presupuestos").select("id, codigo, fecha_emision, subtotal, impuestos, total, estado, proyectos!inner(nombre, clientes!inner(nombre, email))").order("created_at", { ascending: false }),
       supabase.from("proyectos").select("id, nombre, clientes(nombre)").order("created_at", { ascending: false }),
     ]);
     setRows((q ?? []).map((r: any) => ({
-      id: r.id, codigo: r.codigo, total: Number(r.total), estado: r.estado,
-      proyecto: r.proyectos?.nombre ?? "—", cliente: r.proyectos?.clientes?.nombre ?? "—",
+      id: r.id, codigo: r.codigo, fecha_emision: r.fecha_emision,
+      subtotal: Number(r.subtotal), impuestos: Number(r.impuestos), total: Number(r.total), estado: r.estado,
+      proyecto: r.proyectos?.nombre ?? "—",
+      cliente: r.proyectos?.clientes?.nombre ?? "—",
+      cliente_email: r.proyectos?.clientes?.email ?? null,
     })));
     setProyectos((p ?? []) as any);
     setLoading(false);

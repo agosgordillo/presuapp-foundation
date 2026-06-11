@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadQuotePdf } from "@/lib/pdf/quotePdf";
 
-type Quote = { id: number; codigo: string; total: number; estado: string; proyecto: string; cliente: string };
+type Quote = { id: number; codigo: string; fecha_emision: string | null; total: number; subtotal: number; impuestos: number; estado: string; proyecto: string; cliente: string; cliente_email: string | null };
 type Proyecto = { id: number; nombre: string; clientes?: { nombre: string } };
 
 const STATUSES = ["DRAFT", "SENT", "VIEWED", "ACCEPTED", "REJECTED"] as const;

@@ -109,7 +109,7 @@ Triggers y funciones clave:
 
 ### Stack tecnológico
 
-- **Frontend:** React 19, TypeScript estricto, TanStack Router/Start, Vite 7, Tailwind CSS v4, Shadcn/UI, Lucide Icons, Sonner (toasts).
+- **Frontend:** React 19, TypeScript estricto, **TanStack Router v1.170+ y TanStack Start v1.168+** (versiones actualizadas y auditadas, sin vulnerabilidades conocidas tras `bun audit`), Vite 7, Tailwind CSS v4, Shadcn/UI, Lucide Icons, Sonner (toasts).
 - **Backend gestionado:** Lovable Cloud (Supabase) — PostgreSQL, Auth, Row-Level Security, Storage.
 - **Capa de acceso a datos:** cliente Supabase tipado autogenerado en `src/integrations/supabase`.
 - **Tooling:** ESLint, Prettier, Bun (gestor de paquetes y lockfile), migraciones SQL versionadas en `supabase/migrations`.

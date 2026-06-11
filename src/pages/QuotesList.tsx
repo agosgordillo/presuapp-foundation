@@ -115,13 +115,33 @@ export default function QuotesList() {
     load();
   };
 
-  const downloadPdf = async (id: number) => {
+  const downloadPdf = async (quote: Quote) => {
     try {
-      await downloadQuotePdf(id);
+      await downloadQuotePdf(quote);
       toast.success("PDF descargado");
     } catch (e: any) {
       toast.error(e?.message ?? "No se pudo generar el PDF.");
     }
+  };
+
+  const downloadPdfById = async (id: number) => {
+    const row = rows.find((r) => r.id === id);
+    if (row) return downloadPdf(row);
+    // Freshly created quote may not be in rows yet — fetch minimally
+    const { data, error } = await supabase
+      .from("presupuestos")
+      .select("id, codigo, fecha_emision, subtotal, impuestos, total, estado, proyectos!inner(nombre, clientes!inner(nombre, email))")
+      .eq("id", id)
+      .single();
+    if (error || !data) return toast.error(error?.message ?? "No se pudo cargar.");
+    const r: any = data;
+    return downloadPdf({
+      id: r.id, codigo: r.codigo, fecha_emision: r.fecha_emision,
+      subtotal: Number(r.subtotal), impuestos: Number(r.impuestos), total: Number(r.total), estado: r.estado,
+      proyecto: r.proyectos?.nombre ?? "—",
+      cliente: r.proyectos?.clientes?.nombre ?? "—",
+      cliente_email: r.proyectos?.clientes?.email ?? null,
+    });
   };
 
   return (

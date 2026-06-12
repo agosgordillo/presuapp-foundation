@@ -53,7 +53,7 @@ export function Hero() {
               {/* sidebar */}
               <div className="hidden md:flex col-span-3 flex-col gap-2 rounded-xl bg-card p-4 border border-border">
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-2">Menú</span>
-                {["Dashboard", "Presupuestos", "Clientes", "Catálogo", "Pagos"].map((i, idx) => (
+                {["Panel", "Presupuestos", "Clientes", "Catálogo", "Pagos"].map((i, idx) => (
                   <span key={i} className={`text-sm font-medium px-3 py-2 rounded-lg ${idx === 0 ? "bg-primary-light text-primary-dark" : "text-foreground hover:bg-accent"}`}>
                     {i}
                   </span>

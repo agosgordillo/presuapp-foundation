@@ -300,7 +300,7 @@ export default function ProjectDetail({ id }: { id: string }) {
                       {pagos.map((p) => (
                         <li key={p.id} className="flex items-center justify-between py-3">
                           <div>
-                            <p className="text-sm font-semibold text-heading">{money(p.monto)} · {p.metodo}</p>
+                            <p className="text-sm font-semibold text-heading">{money(p.monto)} · {METODO_LABEL[p.metodo] ?? p.metodo}</p>
                             <p className="text-xs text-muted-foreground">{p.fecha_pago}{p.notas ? ` — ${p.notas}` : ""}</p>
                           </div>
                         </li>

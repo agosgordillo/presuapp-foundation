@@ -91,7 +91,7 @@ export default function Dashboard() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-semibold text-heading">{money(q.total)}</p>
-                      <p className="text-xs text-muted-foreground">{q.estado}</p>
+                      <p className="text-xs text-muted-foreground">{ESTADO_LABEL[q.estado] ?? q.estado}</p>
                     </div>
                   </li>
                 ))}

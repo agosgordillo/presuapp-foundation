@@ -8,6 +8,13 @@ type Quote = { id: number; codigo: string; fecha_emision: string | null; total: 
 type Proyecto = { id: number; nombre: string; clientes?: { nombre: string } };
 
 const STATUSES = ["DRAFT", "SENT", "VIEWED", "ACCEPTED", "REJECTED"] as const;
+const ESTADO_LABEL: Record<string, string> = {
+  DRAFT: "Borrador",
+  SENT: "Enviado",
+  VIEWED: "Visto",
+  ACCEPTED: "Aceptado",
+  REJECTED: "Rechazado",
+};
 const statusStyles: Record<string, string> = {
   DRAFT: "bg-secondary text-muted-foreground",
   SENT: "bg-primary-light text-primary-dark",
@@ -111,7 +118,7 @@ export default function QuotesList() {
   const updateStatus = async (id: number, estado: string) => {
     const { error } = await supabase.from("presupuestos").update({ estado }).eq("id", id);
     if (error) return toast.error(error.message);
-    toast.success(`Estado: ${estado}`);
+    toast.success(`Estado: ${ESTADO_LABEL[estado] ?? estado}`);
     load();
   };
 
@@ -221,7 +228,7 @@ export default function QuotesList() {
                   </td>
                   <td className="px-5 py-4">
                     <select value={q.estado} onChange={(e) => updateStatus(q.id, e.target.value)} className={`rounded-full px-2.5 py-0.5 text-xs font-semibold border-none cursor-pointer ${statusStyles[q.estado] ?? statusStyles.DRAFT}`}>
-                      {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      {STATUSES.map((s) => <option key={s} value={s}>{ESTADO_LABEL[s]}</option>)}
                     </select>
                     {q.estado === "ACCEPTED" && <Check className="inline h-3 w-3 ml-1 text-success" />}
                   </td>

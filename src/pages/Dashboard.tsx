@@ -14,6 +14,14 @@ type Metrics = {
 const money = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
+const ESTADO_LABEL: Record<string, string> = {
+  DRAFT: "Borrador",
+  SENT: "Enviado",
+  VIEWED: "Visto",
+  ACCEPTED: "Aceptado",
+  REJECTED: "Rechazado",
+};
+
 export default function Dashboard() {
   const [data, setData] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,7 +59,7 @@ export default function Dashboard() {
     <div className="space-y-8">
       <header>
         <p className="text-xs font-semibold uppercase tracking-wider text-primary">/dashboard</p>
-        <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">Dashboard — Resumen Operativo</h1>
+        <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">Panel de Control — Resumen Operativo</h1>
         <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
           Hub central de métricas B2B. Vista panorámica en tiempo real desde Lovable Cloud.
         </p>
@@ -62,7 +70,7 @@ export default function Dashboard() {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <Metric label="Facturado (aceptado)" value={money(data.facturado)} tone="primary" icon={<DollarSign className="h-4 w-4" />} delta="Presupuestos ACCEPTED" />
+            <Metric label="Facturado (aceptado)" value={money(data.facturado)} tone="primary" icon={<DollarSign className="h-4 w-4" />} delta="Presupuestos aceptados" />
             <Metric label="Cobrado" value={money(data.cobrado)} tone="success" icon={<TrendingUp className="h-4 w-4" />} delta="Σ pagos" />
             <Metric label="Saldo Pendiente" value={money(data.pendiente)} tone="warning" icon={<FileText className="h-4 w-4" />} delta="Facturado − Cobrado" />
             <Metric label="Clientes en cartera" value={String(data.clientes)} tone="primary" icon={<Users className="h-4 w-4" />} delta="Cartera total" />
@@ -83,7 +91,7 @@ export default function Dashboard() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-semibold text-heading">{money(q.total)}</p>
-                      <p className="text-xs text-muted-foreground">{q.estado}</p>
+                      <p className="text-xs text-muted-foreground">{ESTADO_LABEL[q.estado] ?? q.estado}</p>
                     </div>
                   </li>
                 ))}

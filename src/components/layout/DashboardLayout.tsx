@@ -17,7 +17,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/dashboard", label: "Panel de Control", icon: LayoutDashboard },
   { to: "/clients", label: "Clientes", icon: Users },
   { to: "/projects", label: "Proyectos", icon: FolderKanban },
   { to: "/catalog", label: "Catálogo", icon: BookOpen },
@@ -124,7 +124,7 @@ export function DashboardLayout({ children, user }: { children: ReactNode; user?
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Panel B2B SaaS
             </p>
-            <p className="text-sm font-semibold text-heading">PresuApp Console</p>
+            <p className="text-sm font-semibold text-heading">Consola PresuApp</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-success-light px-3 py-1 text-xs font-semibold text-success-dark">

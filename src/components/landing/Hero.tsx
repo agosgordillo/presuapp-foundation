@@ -47,13 +47,13 @@ export function Hero() {
               <span className="h-3 w-3 rounded-full bg-destructive/70" />
               <span className="h-3 w-3 rounded-full bg-warning/70" />
               <span className="h-3 w-3 rounded-full bg-success/70" />
-              <span className="ml-4 text-xs text-muted-foreground font-medium">presuapp.io / dashboard</span>
+              <span className="ml-4 text-xs text-muted-foreground font-medium">presuapp.io / panel</span>
             </div>
             <div className="grid grid-cols-12 gap-4 p-6 bg-surface/50">
               {/* sidebar */}
               <div className="hidden md:flex col-span-3 flex-col gap-2 rounded-xl bg-card p-4 border border-border">
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-2">Menú</span>
-                {["Dashboard", "Presupuestos", "Clientes", "Catálogo", "Pagos"].map((i, idx) => (
+                {["Panel", "Presupuestos", "Clientes", "Catálogo", "Pagos"].map((i, idx) => (
                   <span key={i} className={`text-sm font-medium px-3 py-2 rounded-lg ${idx === 0 ? "bg-primary-light text-primary-dark" : "text-foreground hover:bg-accent"}`}>
                     {i}
                   </span>

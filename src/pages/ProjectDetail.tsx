@@ -9,6 +9,21 @@ type Pres = { id: number; codigo: string; total: number; estado: string };
 type Pago = { id: number; fecha_pago: string; monto: number; metodo: string; notas: string | null };
 type Repo = { id: number; nombre: string; url: string };
 
+const ESTADO_LABEL: Record<string, string> = {
+  DRAFT: "Borrador",
+  SENT: "Enviado",
+  VIEWED: "Visto",
+  ACCEPTED: "Aceptado",
+  REJECTED: "Rechazado",
+};
+const METODO_LABEL: Record<string, string> = {
+  TRANSFER: "Transferencia",
+  CARD: "Tarjeta",
+  CASH: "Efectivo",
+  CHEQUE: "Cheque",
+  OTHER: "Otro",
+};
+
 const money = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 
 export default function ProjectDetail({ id }: { id: string }) {

@@ -287,7 +287,7 @@ export default function ProjectDetail({ id }: { id: string }) {
                 <form onSubmit={addPago} className="rounded-2xl border border-border bg-card p-5 grid grid-cols-1 md:grid-cols-4 gap-3">
                   <input type="number" step="0.01" min="0.01" value={pago.monto} onChange={(e) => setPago({ ...pago, monto: e.target.value })} placeholder="Monto" className="rounded-lg border border-border bg-background px-3 py-2 text-sm" />
                   <select value={pago.metodo} onChange={(e) => setPago({ ...pago, metodo: e.target.value })} className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
-                    {["TRANSFER", "CARD", "CASH", "CHEQUE", "OTHER"].map((m) => <option key={m}>{m}</option>)}
+                    {["TRANSFER", "CARD", "CASH", "CHEQUE", "OTHER"].map((m) => <option key={m} value={m}>{METODO_LABEL[m]}</option>)}
                   </select>
                   <input value={pago.notas} onChange={(e) => setPago({ ...pago, notas: e.target.value })} placeholder="Notas (opcional)" className="rounded-lg border border-border bg-background px-3 py-2 text-sm md:col-span-2" />
                   <button disabled={saving} className="md:col-span-4 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-70">

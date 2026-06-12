@@ -148,14 +148,13 @@ export default function ProjectDetail({ id }: { id: string }) {
       </Link>
 
       <header>
-        <p className="text-xs font-semibold uppercase tracking-wider text-primary">/projects/:id</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-primary">Detalle de Proyecto</p>
         <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">
-          Proyecto: <span className="text-primary">#{id}</span>{" "}
+          Proyecto <span className="text-primary">#{id}</span>{" "}
           {proyecto && <span className="text-heading">— {proyecto.nombre}</span>}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Token <code className="rounded bg-secondary px-1.5 py-0.5 text-xs">:id</code> resuelto contra Lovable Cloud.
-          {proyecto?.clientes?.nombre && <> Cliente: <strong>{proyecto.clientes.nombre}</strong></>}
+          {proyecto?.clientes?.nombre ? <>Cliente: <strong>{proyecto.clientes.nombre}</strong></> : "Información del proyecto y su actividad."}
         </p>
       </header>
 

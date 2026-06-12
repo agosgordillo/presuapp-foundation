@@ -118,7 +118,7 @@ export default function QuotesList() {
   const updateStatus = async (id: number, estado: string) => {
     const { error } = await supabase.from("presupuestos").update({ estado }).eq("id", id);
     if (error) return toast.error(error.message);
-    toast.success(`Estado: ${estado}`);
+    toast.success(`Estado: ${ESTADO_LABEL[estado] ?? estado}`);
     load();
   };
 

@@ -14,6 +14,14 @@ type Metrics = {
 const money = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
+const ESTADO_LABEL: Record<string, string> = {
+  DRAFT: "Borrador",
+  SENT: "Enviado",
+  VIEWED: "Visto",
+  ACCEPTED: "Aceptado",
+  REJECTED: "Rechazado",
+};
+
 export default function Dashboard() {
   const [data, setData] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);

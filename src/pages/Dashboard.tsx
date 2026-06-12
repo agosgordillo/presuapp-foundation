@@ -70,7 +70,7 @@ export default function Dashboard() {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <Metric label="Facturado (aceptado)" value={money(data.facturado)} tone="primary" icon={<DollarSign className="h-4 w-4" />} delta="Presupuestos ACCEPTED" />
+            <Metric label="Facturado (aceptado)" value={money(data.facturado)} tone="primary" icon={<DollarSign className="h-4 w-4" />} delta="Presupuestos aceptados" />
             <Metric label="Cobrado" value={money(data.cobrado)} tone="success" icon={<TrendingUp className="h-4 w-4" />} delta="Σ pagos" />
             <Metric label="Saldo Pendiente" value={money(data.pendiente)} tone="warning" icon={<FileText className="h-4 w-4" />} delta="Facturado − Cobrado" />
             <Metric label="Clientes en cartera" value={String(data.clientes)} tone="primary" icon={<Users className="h-4 w-4" />} delta="Cartera total" />

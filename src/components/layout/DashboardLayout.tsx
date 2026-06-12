@@ -17,7 +17,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/dashboard", label: "Panel de Control", icon: LayoutDashboard },
   { to: "/clients", label: "Clientes", icon: Users },
   { to: "/projects", label: "Proyectos", icon: FolderKanban },
   { to: "/catalog", label: "Catálogo", icon: BookOpen },

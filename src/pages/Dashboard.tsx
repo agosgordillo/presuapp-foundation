@@ -59,7 +59,7 @@ export default function Dashboard() {
     <div className="space-y-8">
       <header>
         <p className="text-xs font-semibold uppercase tracking-wider text-primary">/dashboard</p>
-        <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">Dashboard — Resumen Operativo</h1>
+        <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">Panel de Control — Resumen Operativo</h1>
         <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
           Hub central de métricas B2B. Vista panorámica en tiempo real desde Lovable Cloud.
         </p>

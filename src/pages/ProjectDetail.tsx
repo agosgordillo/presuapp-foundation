@@ -175,13 +175,13 @@ export default function ProjectDetail({ id }: { id: string }) {
 
             {tab === "budgets" && (
               <div className="rounded-2xl border border-border bg-card p-6">
-                {presupuestos.length === 0 ? <p className="text-sm text-muted-foreground">Sin presupuestos. Crea uno desde /quotes.</p> : (
+                {presupuestos.length === 0 ? <p className="text-sm text-muted-foreground">Sin presupuestos. Crea uno desde la sección Presupuestos.</p> : (
                   <ul className="divide-y divide-border">
                     {presupuestos.map((p) => (
                       <li key={p.id} className="flex items-center justify-between py-3">
                         <div>
                           <p className="font-mono text-sm text-heading">{p.codigo}</p>
-                          <p className="text-xs text-muted-foreground">{p.estado}</p>
+                          <p className="text-xs text-muted-foreground">{ESTADO_LABEL[p.estado] ?? p.estado}</p>
                         </div>
                         <p className="font-semibold text-heading">{money(p.total)}</p>
                       </li>

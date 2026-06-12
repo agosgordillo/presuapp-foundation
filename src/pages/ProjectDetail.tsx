@@ -9,6 +9,21 @@ type Pres = { id: number; codigo: string; total: number; estado: string };
 type Pago = { id: number; fecha_pago: string; monto: number; metodo: string; notas: string | null };
 type Repo = { id: number; nombre: string; url: string };
 
+const ESTADO_LABEL: Record<string, string> = {
+  DRAFT: "Borrador",
+  SENT: "Enviado",
+  VIEWED: "Visto",
+  ACCEPTED: "Aceptado",
+  REJECTED: "Rechazado",
+};
+const METODO_LABEL: Record<string, string> = {
+  TRANSFER: "Transferencia",
+  CARD: "Tarjeta",
+  CASH: "Efectivo",
+  CHEQUE: "Cheque",
+  OTHER: "Otro",
+};
+
 const money = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 
 export default function ProjectDetail({ id }: { id: string }) {
@@ -133,14 +148,13 @@ export default function ProjectDetail({ id }: { id: string }) {
       </Link>
 
       <header>
-        <p className="text-xs font-semibold uppercase tracking-wider text-primary">/projects/:id</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-primary">Detalle de Proyecto</p>
         <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">
-          Proyecto: <span className="text-primary">#{id}</span>{" "}
+          Proyecto <span className="text-primary">#{id}</span>{" "}
           {proyecto && <span className="text-heading">— {proyecto.nombre}</span>}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Token <code className="rounded bg-secondary px-1.5 py-0.5 text-xs">:id</code> resuelto contra Lovable Cloud.
-          {proyecto?.clientes?.nombre && <> Cliente: <strong>{proyecto.clientes.nombre}</strong></>}
+          {proyecto?.clientes?.nombre ? <>Cliente: <strong>{proyecto.clientes.nombre}</strong></> : "Información del proyecto y su actividad."}
         </p>
       </header>
 
@@ -161,13 +175,13 @@ export default function ProjectDetail({ id }: { id: string }) {
 
             {tab === "budgets" && (
               <div className="rounded-2xl border border-border bg-card p-6">
-                {presupuestos.length === 0 ? <p className="text-sm text-muted-foreground">Sin presupuestos. Crea uno desde /quotes.</p> : (
+                {presupuestos.length === 0 ? <p className="text-sm text-muted-foreground">Sin presupuestos. Crea uno desde la sección Presupuestos.</p> : (
                   <ul className="divide-y divide-border">
                     {presupuestos.map((p) => (
                       <li key={p.id} className="flex items-center justify-between py-3">
                         <div>
                           <p className="font-mono text-sm text-heading">{p.codigo}</p>
-                          <p className="text-xs text-muted-foreground">{p.estado}</p>
+                          <p className="text-xs text-muted-foreground">{ESTADO_LABEL[p.estado] ?? p.estado}</p>
                         </div>
                         <p className="font-semibold text-heading">{money(p.total)}</p>
                       </li>
@@ -273,7 +287,7 @@ export default function ProjectDetail({ id }: { id: string }) {
                 <form onSubmit={addPago} className="rounded-2xl border border-border bg-card p-5 grid grid-cols-1 md:grid-cols-4 gap-3">
                   <input type="number" step="0.01" min="0.01" value={pago.monto} onChange={(e) => setPago({ ...pago, monto: e.target.value })} placeholder="Monto" className="rounded-lg border border-border bg-background px-3 py-2 text-sm" />
                   <select value={pago.metodo} onChange={(e) => setPago({ ...pago, metodo: e.target.value })} className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
-                    {["TRANSFER", "CARD", "CASH", "CHEQUE", "OTHER"].map((m) => <option key={m}>{m}</option>)}
+                    {["TRANSFER", "CARD", "CASH", "CHEQUE", "OTHER"].map((m) => <option key={m} value={m}>{METODO_LABEL[m]}</option>)}
                   </select>
                   <input value={pago.notas} onChange={(e) => setPago({ ...pago, notas: e.target.value })} placeholder="Notas (opcional)" className="rounded-lg border border-border bg-background px-3 py-2 text-sm md:col-span-2" />
                   <button disabled={saving} className="md:col-span-4 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-70">
@@ -286,7 +300,7 @@ export default function ProjectDetail({ id }: { id: string }) {
                       {pagos.map((p) => (
                         <li key={p.id} className="flex items-center justify-between py-3">
                           <div>
-                            <p className="text-sm font-semibold text-heading">{money(p.monto)} · {p.metodo}</p>
+                            <p className="text-sm font-semibold text-heading">{money(p.monto)} · {METODO_LABEL[p.metodo] ?? p.metodo}</p>
                             <p className="text-xs text-muted-foreground">{p.fecha_pago}{p.notas ? ` — ${p.notas}` : ""}</p>
                           </div>
                         </li>

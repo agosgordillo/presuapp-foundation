@@ -47,7 +47,7 @@ export function Hero() {
               <span className="h-3 w-3 rounded-full bg-destructive/70" />
               <span className="h-3 w-3 rounded-full bg-warning/70" />
               <span className="h-3 w-3 rounded-full bg-success/70" />
-              <span className="ml-4 text-xs text-muted-foreground font-medium">presuapp.io / dashboard</span>
+              <span className="ml-4 text-xs text-muted-foreground font-medium">presuapp.io / panel</span>
             </div>
             <div className="grid grid-cols-12 gap-4 p-6 bg-surface/50">
               {/* sidebar */}

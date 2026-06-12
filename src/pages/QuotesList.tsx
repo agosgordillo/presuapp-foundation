@@ -228,7 +228,7 @@ export default function QuotesList() {
                   </td>
                   <td className="px-5 py-4">
                     <select value={q.estado} onChange={(e) => updateStatus(q.id, e.target.value)} className={`rounded-full px-2.5 py-0.5 text-xs font-semibold border-none cursor-pointer ${statusStyles[q.estado] ?? statusStyles.DRAFT}`}>
-                      {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      {STATUSES.map((s) => <option key={s} value={s}>{ESTADO_LABEL[s]}</option>)}
                     </select>
                     {q.estado === "ACCEPTED" && <Check className="inline h-3 w-3 ml-1 text-success" />}
                   </td>

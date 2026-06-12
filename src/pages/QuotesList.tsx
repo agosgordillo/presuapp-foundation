@@ -8,6 +8,13 @@ type Quote = { id: number; codigo: string; fecha_emision: string | null; total: 
 type Proyecto = { id: number; nombre: string; clientes?: { nombre: string } };
 
 const STATUSES = ["DRAFT", "SENT", "VIEWED", "ACCEPTED", "REJECTED"] as const;
+const ESTADO_LABEL: Record<string, string> = {
+  DRAFT: "Borrador",
+  SENT: "Enviado",
+  VIEWED: "Visto",
+  ACCEPTED: "Aceptado",
+  REJECTED: "Rechazado",
+};
 const statusStyles: Record<string, string> = {
   DRAFT: "bg-secondary text-muted-foreground",
   SENT: "bg-primary-light text-primary-dark",

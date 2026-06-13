@@ -1,0 +1,1 @@
+ALTER TABLE public.catalogo_items ADD COLUMN IF NOT EXISTS activo boolean NOT NULL DEFAULT true;

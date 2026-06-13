@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       catalogo_items: {
         Row: {
+          activo: boolean
           created_at: string
           descripcion: string | null
           id: number
@@ -25,6 +26,7 @@ export type Database = {
           usuario_id: number
         }
         Insert: {
+          activo?: boolean
           created_at?: string
           descripcion?: string | null
           id?: never
@@ -34,6 +36,7 @@ export type Database = {
           usuario_id: number
         }
         Update: {
+          activo?: boolean
           created_at?: string
           descripcion?: string | null
           id?: never

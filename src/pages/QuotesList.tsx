@@ -21,6 +21,18 @@ const statusStyles: Record<string, string> = {
 };
 const money = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 
+// State machine: forward transitions only. ACCEPTED & REJECTED are terminal (reverts require confirmation).
+const ALLOWED_NEXT: Record<string, string[]> = {
+  DRAFT: ["SENT"],
+  SENT: ["VIEWED", "ACCEPTED", "REJECTED"],
+  VIEWED: ["ACCEPTED", "REJECTED"],
+  ACCEPTED: [],
+  REJECTED: [],
+};
+
+// Units that represent a flat / single deliverable — cantidad is fixed at 1 and hidden.
+const FIXED_UNITS = new Set(["SVC", "PROY"]);
+
 type LineItem = { catalogo_item_id: number | null; nombre: string; tipo_unidad: string; cantidad: string; precio_unitario: string };
 const emptyItem = (): LineItem => ({ catalogo_item_id: null, nombre: "", tipo_unidad: "HR", cantidad: "1", precio_unitario: "0" });
 
@@ -55,6 +67,12 @@ export default function QuotesList() {
   };
   useEffect(() => { load(); }, []);
 
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { DRAFT: 0, SENT: 0, VIEWED: 0, ACCEPTED: 0, REJECTED: 0 };
+    rows.forEach((r) => { c[r.estado] = (c[r.estado] ?? 0) + 1; });
+    return c;
+  }, [rows]);
+
   const { subtotal, impuestos, total } = useMemo(() => {
     const sub = items.reduce((s, it) => s + (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0), 0);
     const imp = sub * ((Number(taxPct) || 0) / 100);
@@ -68,18 +86,24 @@ export default function QuotesList() {
 
   const addItem = () => setItems((prev) => [...prev, emptyItem()]);
   const rmItem = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i));
-  const setItem = (i: number, patch: Partial<LineItem>) => setItems((prev) => prev.map((it, idx) => idx === i ? { ...it, ...patch } : it));
+  const setItem = (i: number, patch: Partial<LineItem>) => setItems((prev) => prev.map((it, idx) => {
+    if (idx !== i) return it;
+    const next = { ...it, ...patch };
+    // If switching to a fixed-quantity unit, force cantidad = 1
+    if (patch.tipo_unidad && FIXED_UNITS.has(patch.tipo_unidad)) next.cantidad = "1";
+    return next;
+  }));
 
   const pickCatalog = (i: number, catId: string) => {
     if (!catId) return setItem(i, { catalogo_item_id: null });
     const c = catalog.find((x) => x.id === Number(catId));
     if (!c) return;
-    // Snapshot copy — editing here won't affect the catalog
     setItem(i, {
       catalogo_item_id: c.id,
       nombre: c.nombre,
       tipo_unidad: c.tipo_unidad,
       precio_unitario: String(c.precio_referecia),
+      cantidad: FIXED_UNITS.has(c.tipo_unidad) ? "1" : "1",
     });
   };
 
@@ -130,48 +154,54 @@ export default function QuotesList() {
       };
     });
 
-    if (editingId != null) {
-      const { error: upErr } = await supabase.from("presupuestos").update({
-        proyecto_id: Number(proyectoId),
-        subtotal: Number(subtotal.toFixed(2)),
-        impuestos: Number(impuestos.toFixed(2)),
-        total: Number(total.toFixed(2)),
-      }).eq("id", editingId);
-      if (upErr) { setSaving(false); return toast.error(upErr.message); }
-      await supabase.from("presupuesto_items").delete().eq("presupuesto_id", editingId);
-      const { error: insErr } = await supabase.from("presupuesto_items").insert(itemRows(editingId));
+    try {
+      if (editingId != null) {
+        const { error: upErr } = await supabase.from("presupuestos").update({
+          proyecto_id: Number(proyectoId),
+          subtotal: Number(subtotal.toFixed(2)),
+          impuestos: Number(impuestos.toFixed(2)),
+          total: Number(total.toFixed(2)),
+        }).eq("id", editingId);
+        if (upErr) throw upErr;
+        const { error: delErr } = await supabase.from("presupuesto_items").delete().eq("presupuesto_id", editingId);
+        if (delErr) throw delErr;
+        const { error: insErr } = await supabase.from("presupuesto_items").insert(itemRows(editingId));
+        if (insErr) throw insErr;
+        toast.success("Presupuesto actualizado");
+      } else {
+        const { count } = await supabase.from("presupuestos").select("*", { count: "exact", head: true });
+        const codigo = `#${String((count ?? 0) + 1).padStart(3, "0")}`;
+        const { data: ins, error } = await supabase.from("presupuestos").insert({
+          proyecto_id: Number(proyectoId),
+          codigo,
+          fecha_emision: new Date().toISOString().slice(0, 10),
+          estado: "DRAFT",
+          subtotal: Number(subtotal.toFixed(2)),
+          impuestos: Number(impuestos.toFixed(2)),
+          total: Number(total.toFixed(2)),
+        }).select("id").single();
+        if (error || !ins) throw error ?? new Error("Error al guardar.");
+        const { error: itErr } = await supabase.from("presupuesto_items").insert(itemRows(ins.id));
+        if (itErr) throw itErr;
+        toast.success(`Presupuesto ${codigo} creado`);
+      }
+      await load();
+      resetForm();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Error al guardar.");
+    } finally {
       setSaving(false);
-      if (insErr) return toast.error(insErr.message);
-      toast.success("Presupuesto actualizado");
-    } else {
-      const { count } = await supabase.from("presupuestos").select("*", { count: "exact", head: true });
-      const codigo = `#${String((count ?? 0) + 1).padStart(3, "0")}`;
-      const { data: ins, error } = await supabase.from("presupuestos").insert({
-        proyecto_id: Number(proyectoId),
-        codigo,
-        fecha_emision: new Date().toISOString().slice(0, 10),
-        estado: "DRAFT",
-        subtotal: Number(subtotal.toFixed(2)),
-        impuestos: Number(impuestos.toFixed(2)),
-        total: Number(total.toFixed(2)),
-      }).select("id").single();
-      if (error || !ins) { setSaving(false); return toast.error(error?.message || "Error al guardar."); }
-      const { error: itErr } = await supabase.from("presupuesto_items").insert(itemRows(ins.id));
-      setSaving(false);
-      if (itErr) return toast.error(itErr.message);
-      toast.success(`Presupuesto ${codigo} creado`);
     }
-    resetForm();
-    load();
   };
 
   const remove = async (q: Quote) => {
     if (!confirm(`¿Eliminar presupuesto ${q.codigo}? Esta acción no se puede deshacer.`)) return;
-    await supabase.from("presupuesto_items").delete().eq("presupuesto_id", q.id);
+    const { error: itErr } = await supabase.from("presupuesto_items").delete().eq("presupuesto_id", q.id);
+    if (itErr) return toast.error(itErr.message);
     const { error } = await supabase.from("presupuestos").delete().eq("id", q.id);
     if (error) return toast.error(error.message);
     toast.success("Presupuesto eliminado");
-    load();
+    await load();
   };
 
   const duplicate = async (q: Quote) => {
@@ -199,20 +229,52 @@ export default function QuotesList() {
       if (itErr) return toast.error(itErr.message);
     }
     toast.success(`Duplicado como ${codigo} (Borrador)`);
-    load();
+    await load();
   };
 
-  const updateStatus = async (id: number, estado: string) => {
-    const { error } = await supabase.from("presupuestos").update({ estado }).eq("id", id);
+  const updateStatus = async (q: Quote, estado: string) => {
+    if (estado === q.estado) return;
+    const allowed = ALLOWED_NEXT[q.estado] ?? [];
+    const isForward = allowed.includes(estado);
+
+    // Revert from ACCEPTED → warn about preserved payment history
+    if (q.estado === "ACCEPTED" && estado !== "ACCEPTED") {
+      const { count: payCount } = await supabase
+        .from("pagos")
+        .select("*", { count: "exact", head: true })
+        .eq("proyecto_id", q.proyecto_id);
+      const msg = payCount && payCount > 0
+        ? `⚠️ Advertencia: este presupuesto está ACEPTADO y el proyecto tiene ${payCount} pago(s) registrado(s).\n\nAl revertir a "${ESTADO_LABEL[estado]}" el valor de contrato cambiará, pero los pagos se conservarán en el historial para auditoría.\n\n¿Confirmas el cambio?`
+        : `⚠️ Vas a revertir un presupuesto ACEPTADO a "${ESTADO_LABEL[estado]}". Esto deshabilitará nuevos pagos si no hay otros presupuestos aceptados.\n\n¿Continuar?`;
+      if (!confirm(msg)) return;
+    } else if (!isForward) {
+      // Non-forward transition that isn't an ACCEPTED revert (e.g. REJECTED → SENT, or skipping steps)
+      if (!confirm(`Transición no estándar: ${ESTADO_LABEL[q.estado]} → ${ESTADO_LABEL[estado]}.\n\nEl flujo recomendado es Borrador → Enviado → Visto → Aceptado/Rechazado.\n\n¿Continuar de todos modos?`)) return;
+    }
+
+    const { error } = await supabase.from("presupuestos").update({ estado }).eq("id", q.id);
     if (error) return toast.error(error.message);
-    toast.success(`Estado: ${ESTADO_LABEL[estado] ?? estado}`);
-    load();
+
+    if (estado === "ACCEPTED") {
+      toast.success(`Aceptado — Módulo de Pagos habilitado para "${q.proyecto}"`);
+    } else {
+      toast.success(`Estado: ${ESTADO_LABEL[estado] ?? estado}`);
+    }
+    await load();
   };
 
   const downloadPdf = async (quote: Quote) => {
     try { await downloadQuotePdf(quote); toast.success("PDF descargado"); }
     catch (e: any) { toast.error(e?.message ?? "No se pudo generar el PDF."); }
   };
+
+  const metricCards: { key: typeof STATUSES[number]; label: string }[] = [
+    { key: "DRAFT", label: "Borradores" },
+    { key: "SENT", label: "Enviados" },
+    { key: "VIEWED", label: "Vistos" },
+    { key: "ACCEPTED", label: "Aceptados" },
+    { key: "REJECTED", label: "Rechazados" },
+  ];
 
   return (
     <div className="space-y-8">
@@ -226,6 +288,17 @@ export default function QuotesList() {
           <Plus className="h-4 w-4" /> {showForm ? "Cancelar" : "Nuevo presupuesto"}
         </button>
       </header>
+
+      {/* Métricas por estado */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {metricCards.map((m) => (
+          <div key={m.key} className={`rounded-2xl border border-border bg-card p-4 ${counts[m.key] > 0 ? "" : "opacity-70"}`}>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{m.label}</p>
+            <p className="mt-2 text-2xl font-bold text-heading">{counts[m.key] ?? 0}</p>
+            <span className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusStyles[m.key]}`}>{ESTADO_LABEL[m.key]}</span>
+          </div>
+        ))}
+      </div>
 
       {showForm && (
         <form onSubmit={save} className="rounded-2xl border border-border bg-card p-5 space-y-4">
@@ -244,31 +317,38 @@ export default function QuotesList() {
 
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ítems</p>
-            {items.map((it, i) => (
-              <div key={i} className="grid grid-cols-12 gap-2 items-start">
-                <select
-                  value={it.catalogo_item_id ?? ""}
-                  onChange={(e) => pickCatalog(i, e.target.value)}
-                  className="col-span-3 rounded-lg border border-border bg-background px-2 py-2 text-xs"
-                  title="Cargar desde catálogo"
-                >
-                  <option value="">— Catálogo —</option>
-                  {catalog.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                </select>
-                <input value={it.nombre} onChange={(e) => setItem(i, { nombre: e.target.value })} placeholder="Concepto" className="col-span-3 rounded-lg border border-border bg-background px-3 py-2 text-sm" />
-                <select value={it.tipo_unidad} onChange={(e) => setItem(i, { tipo_unidad: e.target.value })} className="col-span-1 rounded-lg border border-border bg-background px-2 py-2 text-sm">
-                  {["HR", "U", "SVC", "MES", "PROY"].map((u) => <option key={u}>{u}</option>)}
-                </select>
-                <input type="number" step="0.01" min="0" value={it.cantidad} onChange={(e) => setItem(i, { cantidad: e.target.value })} placeholder="Cant." className="col-span-1 rounded-lg border border-border bg-background px-2 py-2 text-sm" />
-                <input type="number" step="0.01" min="0" value={it.precio_unitario} onChange={(e) => setItem(i, { precio_unitario: e.target.value })} placeholder="Precio" className="col-span-2 rounded-lg border border-border bg-background px-2 py-2 text-sm" />
-                <div className="col-span-1 text-right text-xs font-semibold text-heading pt-2">
-                  {money((Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0))}
+            {items.map((it, i) => {
+              const isFixed = FIXED_UNITS.has(it.tipo_unidad);
+              return (
+                <div key={i} className="grid grid-cols-12 gap-2 items-start">
+                  <select
+                    value={it.catalogo_item_id ?? ""}
+                    onChange={(e) => pickCatalog(i, e.target.value)}
+                    className="col-span-3 rounded-lg border border-border bg-background px-2 py-2 text-xs"
+                    title="Cargar desde catálogo"
+                  >
+                    <option value="">— Catálogo —</option>
+                    {catalog.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                  </select>
+                  <input value={it.nombre} onChange={(e) => setItem(i, { nombre: e.target.value })} placeholder="Concepto" className="col-span-3 rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+                  <select value={it.tipo_unidad} onChange={(e) => setItem(i, { tipo_unidad: e.target.value })} className="col-span-1 rounded-lg border border-border bg-background px-2 py-2 text-sm">
+                    {["HR", "U", "SVC", "MES", "PROY"].map((u) => <option key={u}>{u}</option>)}
+                  </select>
+                  {isFixed ? (
+                    <div className="col-span-1 text-center text-xs text-muted-foreground pt-2.5" title="Unidad fija — cantidad = 1">—</div>
+                  ) : (
+                    <input type="number" step="0.01" min="0" value={it.cantidad} onChange={(e) => setItem(i, { cantidad: e.target.value })} placeholder="Cant." className="col-span-1 rounded-lg border border-border bg-background px-2 py-2 text-sm" />
+                  )}
+                  <input type="number" step="0.01" min="0" value={it.precio_unitario} onChange={(e) => setItem(i, { precio_unitario: e.target.value })} placeholder={isFixed ? "Precio total" : "Precio"} className="col-span-2 rounded-lg border border-border bg-background px-2 py-2 text-sm" />
+                  <div className="col-span-1 text-right text-xs font-semibold text-heading pt-2">
+                    {money((Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0))}
+                  </div>
+                  <button type="button" onClick={() => rmItem(i)} className="col-span-1 inline-flex items-center justify-center rounded-lg border border-border py-2 text-muted-foreground hover:text-destructive hover:border-destructive/40">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
-                <button type="button" onClick={() => rmItem(i)} className="col-span-1 inline-flex items-center justify-center rounded-lg border border-border py-2 text-muted-foreground hover:text-destructive hover:border-destructive/40">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
+              );
+            })}
             <button type="button" onClick={addItem} className="text-xs font-semibold text-primary hover:underline">+ Agregar ítem</button>
           </div>
 
@@ -312,7 +392,7 @@ export default function QuotesList() {
                     <p className="text-xs text-muted-foreground">{q.cliente}</p>
                   </td>
                   <td className="px-5 py-4">
-                    <select value={q.estado} onChange={(e) => updateStatus(q.id, e.target.value)} className={`rounded-full px-2.5 py-0.5 text-xs font-semibold border-none cursor-pointer ${statusStyles[q.estado] ?? statusStyles.DRAFT}`}>
+                    <select value={q.estado} onChange={(e) => updateStatus(q, e.target.value)} className={`rounded-full px-2.5 py-0.5 text-xs font-semibold border-none cursor-pointer ${statusStyles[q.estado] ?? statusStyles.DRAFT}`}>
                       {STATUSES.map((s) => <option key={s} value={s}>{ESTADO_LABEL[s]}</option>)}
                     </select>
                     {q.estado === "ACCEPTED" && <Check className="inline h-3 w-3 ml-1 text-success" />}

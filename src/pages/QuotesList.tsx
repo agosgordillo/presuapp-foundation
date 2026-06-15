@@ -88,7 +88,7 @@ export default function QuotesList() {
   const startEdit = async (q: Quote) => {
     const { data, error } = await supabase
       .from("presupuesto_items")
-      .select("catalogo_item_id, nombre_historico, tipo_unidad_historica, cantidad, precio_unitario")
+      .select("nombre_historico, tipo_unidad_historica, cantidad, precio_unitario")
       .eq("presupuesto_id", q.id);
     if (error) return toast.error(error.message);
     const tax = q.subtotal > 0 ? Math.round((q.impuestos / q.subtotal) * 10000) / 100 : 21;

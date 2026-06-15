@@ -177,7 +177,7 @@ export default function QuotesList() {
   const duplicate = async (q: Quote) => {
     const { data: src, error: srcErr } = await supabase
       .from("presupuesto_items")
-      .select("catalogo_item_id, nombre_historico, tipo_unidad_historica, cantidad, precio_unitario, subtotal_item")
+      .select("nombre_historico, tipo_unidad_historica, cantidad, precio_unitario, subtotal_item")
       .eq("presupuesto_id", q.id);
     if (srcErr) return toast.error(srcErr.message);
     const { count } = await supabase.from("presupuestos").select("*", { count: "exact", head: true });

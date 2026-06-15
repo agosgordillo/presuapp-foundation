@@ -96,7 +96,7 @@ export default function QuotesList() {
     setProyectoId(String(q.proyecto_id));
     setTaxPct(String(tax));
     setItems((data ?? []).map((r: any) => ({
-      catalogo_item_id: r.catalogo_item_id,
+      catalogo_item_id: null,
       nombre: r.nombre_historico,
       tipo_unidad: r.tipo_unidad_historica,
       cantidad: String(r.cantidad),

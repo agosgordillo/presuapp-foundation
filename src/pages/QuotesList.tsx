@@ -122,7 +122,6 @@ export default function QuotesList() {
       const price = Number(it.precio_unitario);
       return {
         presupuesto_id,
-        catalogo_item_id: it.catalogo_item_id,
         nombre_historico: it.nombre,
         tipo_unidad_historica: it.tipo_unidad,
         cantidad: qty,

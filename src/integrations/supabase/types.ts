@@ -133,8 +133,10 @@ export type Database = {
       }
       presupuesto_items: {
         Row: {
+          aplica_impuesto: boolean
           cantidad: number
           id: number
+          impuesto_porcentaje: number
           nombre_historico: string
           precio_unitario: number
           presupuesto_id: number
@@ -142,8 +144,10 @@ export type Database = {
           tipo_unidad_historica: string
         }
         Insert: {
+          aplica_impuesto?: boolean
           cantidad: number
           id?: never
+          impuesto_porcentaje?: number
           nombre_historico: string
           precio_unitario: number
           presupuesto_id: number
@@ -151,8 +155,10 @@ export type Database = {
           tipo_unidad_historica: string
         }
         Update: {
+          aplica_impuesto?: boolean
           cantidad?: number
           id?: never
+          impuesto_porcentaje?: number
           nombre_historico?: string
           precio_unitario?: number
           presupuesto_id?: number

@@ -318,12 +318,11 @@ export default function QuotesList() {
               {editingId != null ? "Editar presupuesto" : "Nuevo presupuesto"}
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <select value={proyectoId} onChange={(e) => setProyectoId(e.target.value)} className="rounded-lg border border-border bg-background px-3 py-2 text-sm md:col-span-2">
+          <div className="grid grid-cols-1 gap-3">
+            <select value={proyectoId} onChange={(e) => setProyectoId(e.target.value)} className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
               <option value="">Seleccionar proyecto…</option>
               {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre} — {p.clientes?.nombre ?? "—"}</option>)}
             </select>
-            <input type="number" step="0.01" min="0" max="100" value={defaultTaxPct} onChange={(e) => setDefaultTaxPct(e.target.value)} placeholder="Impuesto % por defecto" title="Impuesto % por defecto para nuevos ítems" className="rounded-lg border border-border bg-background px-3 py-2 text-sm" />
           </div>
 
           <div className="space-y-2">

@@ -11,6 +11,8 @@ export type QuotePdfItem = {
   cantidad: number | string;
   precio_unitario: number | string;
   subtotal_item: number | string;
+  aplica_impuesto?: boolean | null;
+  impuesto_porcentaje?: number | string | null;
 };
 
 export type QuotePdfData = {
@@ -37,7 +39,7 @@ export async function downloadQuotePdf(quote: QuotePdfData) {
   if (!items) {
     const { data, error } = await supabase
       .from("presupuesto_items")
-      .select("nombre_historico, tipo_unidad_historica, cantidad, precio_unitario, subtotal_item")
+      .select("nombre_historico, tipo_unidad_historica, cantidad, precio_unitario, subtotal_item, aplica_impuesto, impuesto_porcentaje")
       .eq("presupuesto_id", quote.id);
     if (error) throw new Error(error.message);
     items = (data ?? []) as QuotePdfItem[];
@@ -83,23 +85,28 @@ export async function downloadQuotePdf(quote: QuotePdfData) {
   if (quote.cliente_email) doc.text(quote.cliente_email, pageWidth - margin, 160, { align: "right" });
   doc.text(`Proyecto: ${quote.proyecto ?? "—"}`, pageWidth - margin, 174, { align: "right" });
 
-  // Items table — REAL data
+  // Items table — REAL data (with per-item tax)
   autoTable(doc, {
     startY: 200,
-    head: [["Concepto", "Unidad", "Cantidad", "Precio Unit.", "Subtotal"]],
-    body: items.map((it) => [
-      it.nombre_historico,
-      it.tipo_unidad_historica,
-      String(it.cantidad),
-      money(Number(it.precio_unitario)),
-      money(Number(it.subtotal_item)),
-    ]),
+    head: [["Concepto", "Unidad", "Cantidad", "Precio Unit.", "Imp. %", "Subtotal"]],
+    body: items.map((it) => {
+      const taxPct = it.aplica_impuesto === false ? 0 : Number(it.impuesto_porcentaje ?? 0);
+      return [
+        it.nombre_historico,
+        it.tipo_unidad_historica,
+        String(it.cantidad),
+        money(Number(it.precio_unitario)),
+        it.aplica_impuesto === false ? "—" : `${taxPct}%`,
+        money(Number(it.subtotal_item)),
+      ];
+    }),
     styles: { fontSize: 10, cellPadding: 8 },
     headStyles: { fillColor: [37, 99, 235], textColor: 255, halign: "left" },
     columnStyles: {
       2: { halign: "right" },
       3: { halign: "right" },
       4: { halign: "right" },
+      5: { halign: "right" },
     },
     margin: { left: margin, right: margin },
   });

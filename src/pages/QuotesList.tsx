@@ -323,40 +323,68 @@ export default function QuotesList() {
               <option value="">Seleccionar proyecto…</option>
               {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre} — {p.clientes?.nombre ?? "—"}</option>)}
             </select>
-            <input type="number" step="0.01" min="0" max="100" value={taxPct} onChange={(e) => setTaxPct(e.target.value)} placeholder="Impuesto %" className="rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+            <input type="number" step="0.01" min="0" max="100" value={defaultTaxPct} onChange={(e) => setDefaultTaxPct(e.target.value)} placeholder="Impuesto % por defecto" title="Impuesto % por defecto para nuevos ítems" className="rounded-lg border border-border bg-background px-3 py-2 text-sm" />
           </div>
 
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ítems</p>
             {items.map((it, i) => {
               const isFixed = FIXED_UNITS.has(it.tipo_unidad);
+              const base = (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0);
+              const itemTax = it.aplica_impuesto ? base * ((Number(it.impuesto_porcentaje) || 0) / 100) : 0;
               return (
-                <div key={i} className="grid grid-cols-12 gap-2 items-start">
-                  <select
-                    value={it.catalogo_item_id ?? ""}
-                    onChange={(e) => pickCatalog(i, e.target.value)}
-                    className="col-span-3 rounded-lg border border-border bg-background px-2 py-2 text-xs"
-                    title="Cargar desde catálogo"
-                  >
-                    <option value="">— Catálogo —</option>
-                    {catalog.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                  </select>
-                  <input value={it.nombre} onChange={(e) => setItem(i, { nombre: e.target.value })} placeholder="Concepto" className="col-span-3 rounded-lg border border-border bg-background px-3 py-2 text-sm" />
-                  <select value={it.tipo_unidad} onChange={(e) => setItem(i, { tipo_unidad: e.target.value })} className="col-span-1 rounded-lg border border-border bg-background px-2 py-2 text-sm">
-                    {["HR", "U", "SVC", "MES", "PROY"].map((u) => <option key={u}>{u}</option>)}
-                  </select>
-                  {isFixed ? (
-                    <div className="col-span-1 text-center text-xs text-muted-foreground pt-2.5" title="Unidad fija — cantidad = 1">—</div>
-                  ) : (
-                    <input type="number" step="0.01" min="0" value={it.cantidad} onChange={(e) => setItem(i, { cantidad: e.target.value })} placeholder="Cant." className="col-span-1 rounded-lg border border-border bg-background px-2 py-2 text-sm" />
-                  )}
-                  <input type="number" step="0.01" min="0" value={it.precio_unitario} onChange={(e) => setItem(i, { precio_unitario: e.target.value })} placeholder={isFixed ? "Precio total" : "Precio"} className="col-span-2 rounded-lg border border-border bg-background px-2 py-2 text-sm" />
-                  <div className="col-span-1 text-right text-xs font-semibold text-heading pt-2">
-                    {money((Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0))}
+                <div key={i} className="space-y-1.5">
+                  <div className="grid grid-cols-12 gap-2 items-start">
+                    <select
+                      value={it.catalogo_item_id ?? ""}
+                      onChange={(e) => pickCatalog(i, e.target.value)}
+                      className="col-span-3 rounded-lg border border-border bg-background px-2 py-2 text-xs"
+                      title="Cargar desde catálogo"
+                    >
+                      <option value="">— Catálogo —</option>
+                      {catalog.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                    </select>
+                    <input value={it.nombre} onChange={(e) => setItem(i, { nombre: e.target.value })} placeholder="Concepto" className="col-span-3 rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+                    <select value={it.tipo_unidad} onChange={(e) => setItem(i, { tipo_unidad: e.target.value })} className="col-span-1 rounded-lg border border-border bg-background px-2 py-2 text-sm">
+                      {["HR", "U", "SVC", "MES", "PROY"].map((u) => <option key={u}>{u}</option>)}
+                    </select>
+                    {isFixed ? (
+                      <div className="col-span-1 text-center text-xs text-muted-foreground pt-2.5" title="Unidad fija — cantidad = 1">—</div>
+                    ) : (
+                      <input type="number" step="0.01" min="0" value={it.cantidad} onChange={(e) => setItem(i, { cantidad: e.target.value })} placeholder="Cant." className="col-span-1 rounded-lg border border-border bg-background px-2 py-2 text-sm" />
+                    )}
+                    <input type="number" step="0.01" min="0" value={it.precio_unitario} onChange={(e) => setItem(i, { precio_unitario: e.target.value })} placeholder={isFixed ? "Precio total" : "Precio"} className="col-span-2 rounded-lg border border-border bg-background px-2 py-2 text-sm" />
+                    <div className="col-span-1 text-right text-xs font-semibold text-heading pt-2">
+                      {money(base)}
+                    </div>
+                    <button type="button" onClick={() => rmItem(i)} className="col-span-1 inline-flex items-center justify-center rounded-lg border border-border py-2 text-muted-foreground hover:text-destructive hover:border-destructive/40">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
-                  <button type="button" onClick={() => rmItem(i)} className="col-span-1 inline-flex items-center justify-center rounded-lg border border-border py-2 text-muted-foreground hover:text-destructive hover:border-destructive/40">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-3 pl-1 text-xs text-muted-foreground">
+                    <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={it.aplica_impuesto}
+                        onChange={(e) => setItem(i, { aplica_impuesto: e.target.checked })}
+                        className="h-3.5 w-3.5 rounded border-border accent-primary"
+                      />
+                      <span>Aplica impuesto</span>
+                    </label>
+                    <div className="inline-flex items-center gap-1">
+                      <input
+                        type="number" step="0.01" min="0" max="100"
+                        value={it.impuesto_porcentaje}
+                        disabled={!it.aplica_impuesto}
+                        onChange={(e) => setItem(i, { impuesto_porcentaje: e.target.value })}
+                        className="w-16 rounded-md border border-border bg-background px-2 py-1 text-xs disabled:opacity-50"
+                      />
+                      <span>%</span>
+                    </div>
+                    <span className="ml-auto">
+                      Impuesto ítem: <span className="font-semibold text-heading">{money(itemTax)}</span>
+                    </span>
+                  </div>
                 </div>
               );
             })}
@@ -365,7 +393,7 @@ export default function QuotesList() {
 
           <div className="grid grid-cols-3 gap-3 rounded-lg bg-surface p-4 text-sm">
             <div><p className="text-xs text-muted-foreground">Subtotal</p><p className="font-semibold text-heading">{money(subtotal)}</p></div>
-            <div><p className="text-xs text-muted-foreground">Impuestos ({taxPct}%)</p><p className="font-semibold text-heading">{money(impuestos)}</p></div>
+            <div><p className="text-xs text-muted-foreground">Impuestos (por ítem)</p><p className="font-semibold text-heading">{money(impuestos)}</p></div>
             <div><p className="text-xs text-muted-foreground">Total</p><p className="font-bold text-primary text-base">{money(total)}</p></div>
           </div>
 

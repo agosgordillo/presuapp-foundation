@@ -33,8 +33,9 @@ const ALLOWED_NEXT: Record<string, string[]> = {
 // Units that represent a flat / single deliverable — cantidad is fixed at 1 and hidden.
 const FIXED_UNITS = new Set(["SVC", "PROY"]);
 
-type LineItem = { catalogo_item_id: number | null; nombre: string; tipo_unidad: string; cantidad: string; precio_unitario: string };
-const emptyItem = (): LineItem => ({ catalogo_item_id: null, nombre: "", tipo_unidad: "HR", cantidad: "1", precio_unitario: "0" });
+type LineItem = { catalogo_item_id: number | null; nombre: string; tipo_unidad: string; cantidad: string; precio_unitario: string; aplica_impuesto: boolean; impuesto_porcentaje: string };
+const DEFAULT_TAX = "21";
+const emptyItem = (): LineItem => ({ catalogo_item_id: null, nombre: "", tipo_unidad: "HR", cantidad: "1", precio_unitario: "0", aplica_impuesto: true, impuesto_porcentaje: DEFAULT_TAX });
 
 export default function QuotesList() {
   const [rows, setRows] = useState<Quote[]>([]);
@@ -44,7 +45,7 @@ export default function QuotesList() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [proyectoId, setProyectoId] = useState("");
-  const [taxPct, setTaxPct] = useState("21");
+  const [defaultTaxPct, setDefaultTaxPct] = useState(DEFAULT_TAX);
   const [items, setItems] = useState<LineItem[]>([emptyItem()]);
   const [saving, setSaving] = useState(false);
 
@@ -74,13 +75,18 @@ export default function QuotesList() {
   }, [rows]);
 
   const { subtotal, impuestos, total } = useMemo(() => {
-    const sub = items.reduce((s, it) => s + (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0), 0);
-    const imp = sub * ((Number(taxPct) || 0) / 100);
+    let sub = 0;
+    let imp = 0;
+    for (const it of items) {
+      const base = (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0);
+      sub += base;
+      if (it.aplica_impuesto) imp += base * ((Number(it.impuesto_porcentaje) || 0) / 100);
+    }
     return { subtotal: sub, impuestos: imp, total: sub + imp };
-  }, [items, taxPct]);
+  }, [items]);
 
   const resetForm = () => {
-    setEditingId(null); setProyectoId(""); setTaxPct("21");
+    setEditingId(null); setProyectoId(""); setDefaultTaxPct(DEFAULT_TAX);
     setItems([emptyItem()]); setShowForm(false);
   };
 
@@ -103,7 +109,9 @@ export default function QuotesList() {
       nombre: c.nombre,
       tipo_unidad: c.tipo_unidad,
       precio_unitario: String(c.precio_referecia),
-      cantidad: FIXED_UNITS.has(c.tipo_unidad) ? "1" : "1",
+      cantidad: "1",
+      impuesto_porcentaje: defaultTaxPct,
+      aplica_impuesto: true,
     });
   };
 
@@ -112,19 +120,20 @@ export default function QuotesList() {
   const startEdit = async (q: Quote) => {
     const { data, error } = await supabase
       .from("presupuesto_items")
-      .select("nombre_historico, tipo_unidad_historica, cantidad, precio_unitario")
+      .select("nombre_historico, tipo_unidad_historica, cantidad, precio_unitario, aplica_impuesto, impuesto_porcentaje")
       .eq("presupuesto_id", q.id);
     if (error) return toast.error(error.message);
-    const tax = q.subtotal > 0 ? Math.round((q.impuestos / q.subtotal) * 10000) / 100 : 21;
     setEditingId(q.id);
     setProyectoId(String(q.proyecto_id));
-    setTaxPct(String(tax));
+    setDefaultTaxPct(DEFAULT_TAX);
     setItems((data ?? []).map((r: any) => ({
       catalogo_item_id: null,
       nombre: r.nombre_historico,
       tipo_unidad: r.tipo_unidad_historica,
       cantidad: String(r.cantidad),
       precio_unitario: String(r.precio_unitario),
+      aplica_impuesto: r.aplica_impuesto ?? true,
+      impuesto_porcentaje: String(r.impuesto_porcentaje ?? DEFAULT_TAX),
     })));
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -151,6 +160,8 @@ export default function QuotesList() {
         cantidad: qty,
         precio_unitario: price,
         subtotal_item: Number((qty * price).toFixed(2)),
+        aplica_impuesto: it.aplica_impuesto,
+        impuesto_porcentaje: Number(it.impuesto_porcentaje) || 0,
       };
     });
 

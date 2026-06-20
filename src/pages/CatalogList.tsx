@@ -9,6 +9,7 @@ import {
   updateCatalogItem,
   type CatalogItemRow,
 } from "@/lib/api/catalog";
+import { PageHeader } from "@/components/PageHeader";
 
 type Item = CatalogItemRow;
 const UNITS = ["HR", "U", "SVC", "MES", "PROY"] as const;

@@ -2,14 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { createCustomer, deleteCustomer, getCustomers, updateCustomer, type CustomerRow } from "@/lib/api/customers";
 
-type Row = { id: number; nombre: string; email: string; telefono: string; empresa: string; proyectos: number };
 type FormState = { nombre: string; email: string; telefono: string; empresa: string };
 const EMPTY: FormState = { nombre: "", email: "", telefono: "", empresa: "" };
 
 export default function ClientsList() {
-  const [rows, setRows] = useState<Row[]>([]);
+  const [rows, setRows] = useState<CustomerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -19,18 +18,13 @@ export default function ClientsList() {
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("clientes")
-      .select("id, nombre, email, telefono, empresa, proyectos(count)")
-      .order("created_at", { ascending: false });
-    if (error) toast.error(error.message);
-    setRows(
-      (data ?? []).map((c: any) => ({
-        id: c.id, nombre: c.nombre, email: c.email, telefono: c.telefono, empresa: c.empresa,
-        proyectos: c.proyectos?.[0]?.count ?? 0,
-      })),
-    );
-    setLoading(false);
+    try {
+      setRows(await getCustomers());
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al cargar clientes.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -43,7 +37,7 @@ export default function ClientsList() {
 
   const resetForm = () => { setForm(EMPTY); setEditingId(null); setShowForm(false); };
 
-  const startEdit = (r: Row) => {
+  const startEdit = (r: CustomerRow) => {
     setEditingId(r.id);
     setForm({ nombre: r.nombre, email: r.email, telefono: r.telefono, empresa: r.empresa });
     setShowForm(true);
@@ -55,32 +49,35 @@ export default function ClientsList() {
       return toast.error("Completa todos los campos.");
     }
     setSaving(true);
-    if (editingId != null) {
-      const { error } = await supabase.from("clientes").update(form).eq("id", editingId);
+    try {
+      if (editingId != null) {
+        await updateCustomer(editingId, form);
+        toast.success("Cliente actualizado");
+      } else {
+        await createCustomer(form);
+        toast.success("Cliente creado");
+      }
+      resetForm();
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al guardar.");
+    } finally {
       setSaving(false);
-      if (error) return toast.error(error.message);
-      toast.success("Cliente actualizado");
-    } else {
-      const { data: u } = await supabase.from("usuarios").select("id").maybeSingle();
-      if (!u) { setSaving(false); return toast.error("Inicia sesión para crear clientes."); }
-      const { error } = await supabase.from("clientes").insert({ ...form, usuario_id: u.id });
-      setSaving(false);
-      if (error) return toast.error(error.message);
-      toast.success("Cliente creado");
     }
-    resetForm();
-    load();
   };
 
-  const remove = async (r: Row) => {
+  const remove = async (r: CustomerRow) => {
     if (r.proyectos > 0) {
       return toast.error(`No se puede eliminar: el cliente tiene ${r.proyectos} proyecto(s) activo(s).`);
     }
     if (!confirm(`¿Eliminar al cliente "${r.nombre}"? Esta acción no se puede deshacer.`)) return;
-    const { error } = await supabase.from("clientes").delete().eq("id", r.id);
-    if (error) return toast.error(error.message);
-    toast.success("Cliente eliminado");
-    load();
+    try {
+      await deleteCustomer(r.id);
+      toast.success("Cliente eliminado");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al eliminar.");
+    }
   };
 
   return (

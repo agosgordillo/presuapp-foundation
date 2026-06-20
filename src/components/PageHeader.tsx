@@ -3,10 +3,10 @@ import type { ReactNode } from "react";
 type PageHeaderProps = {
   /** Small uppercase label shown above the title (e.g. "/clientes"). */
   eyebrow?: string;
-  /** Main page title. */
-  title: string;
+  /** Main page title. Accepts inline markup (e.g. coloured spans). */
+  title: ReactNode;
   /** Subtitle / supporting copy. */
-  description?: string;
+  description?: ReactNode;
   /** Optional right-aligned actions (buttons, toggles, etc.). */
   actions?: ReactNode;
 };

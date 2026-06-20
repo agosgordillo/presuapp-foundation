@@ -15,6 +15,7 @@ import {
   type Repo,
 } from "@/lib/api/projects";
 import { getQuotesByProject, type QuoteByProject } from "@/lib/api/quotes";
+import { PageHeader } from "@/components/PageHeader";
 
 type Proyecto = ProyectoT;
 type Pres = QuoteByProject;

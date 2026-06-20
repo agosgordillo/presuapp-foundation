@@ -93,16 +93,16 @@ export default function ProjectsList() {
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary">/proyectos</p>
-          <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">Proyectos — Pipeline Activo</h1>
-          <p className="mt-2 text-sm text-muted-foreground max-w-2xl">Crea, edita y elimina proyectos. El borrado elimina en cascada presupuestos y pagos asociados.</p>
-        </div>
-        <button onClick={() => { if (showForm) resetForm(); else setShowForm(true); }} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover">
-          <Plus className="h-4 w-4" /> {showForm ? "Cancelar" : "Nuevo proyecto"}
-        </button>
-      </header>
+      <PageHeader
+        eyebrow="/proyectos"
+        title="Proyectos — Pipeline Activo"
+        description="Crea, edita y elimina proyectos. El borrado elimina en cascada presupuestos y pagos asociados."
+        actions={
+          <button onClick={() => { if (showForm) resetForm(); else setShowForm(true); }} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover">
+            <Plus className="h-4 w-4" /> {showForm ? "Cancelar" : "Nuevo proyecto"}
+          </button>
+        }
+      />
 
       {showForm && (
         <form onSubmit={save} className="rounded-2xl border border-border bg-card p-5 grid grid-cols-1 md:grid-cols-2 gap-3">

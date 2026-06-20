@@ -19,6 +19,7 @@ import {
   type Quote,
 } from "@/lib/api/quotes";
 import { getActiveCatalogItems, type ActiveCatalogItem } from "@/lib/api/catalog";
+import { PageHeader } from "@/components/PageHeader";
 
 type CatalogItem = ActiveCatalogItem;
 

@@ -3,6 +3,7 @@ import { DollarSign, TrendingUp, FileText, Users, Loader2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { getDashboardMetrics, type DashboardMetrics } from "@/lib/api/quotes";
+import { PageHeader } from "@/components/PageHeader";
 
 type Metrics = DashboardMetrics;
 

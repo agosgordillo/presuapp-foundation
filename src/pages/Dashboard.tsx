@@ -4,19 +4,13 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { getDashboardMetrics, type DashboardMetrics } from "@/lib/api/quotes";
 import { PageHeader } from "@/components/PageHeader";
+import { RecentQuoteRow } from "@/components/dashboard/RecentQuoteRow";
 
 type Metrics = DashboardMetrics;
 
 const money = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
-const ESTADO_LABEL: Record<string, string> = {
-  DRAFT: "Borrador",
-  SENT: "Enviado",
-  VIEWED: "Visto",
-  ACCEPTED: "Aceptado",
-  REJECTED: "Rechazado",
-};
 
 export default function Dashboard() {
   const [data, setData] = useState<Metrics | null>(null);

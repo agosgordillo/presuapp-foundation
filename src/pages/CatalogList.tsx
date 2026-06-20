@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { Loader2, Pencil, Plus, Power, PowerOff, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  createCatalogItem,
+  deleteCatalogItem,
+  getCatalogItems,
+  setCatalogItemActive,
+  updateCatalogItem,
+  type CatalogItemRow,
+} from "@/lib/api/catalog";
 
-type Item = {
-  id: number;
-  nombre: string;
-  descripcion: string | null;
-  tipo_unidad: string;
-  precio_referecia: number;
-  activo: boolean;
-};
+type Item = CatalogItemRow;
 const UNITS = ["HR", "U", "SVC", "MES", "PROY"] as const;
 
 const money = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
@@ -28,10 +28,13 @@ export default function CatalogList() {
   const [showInactive, setShowInactive] = useState(true);
 
   const load = async () => {
-    const { data, error } = await supabase.from("catalogo_items").select("*").order("created_at", { ascending: false });
-    if (error) toast.error(error.message);
-    setItems((data ?? []).map((r: any) => ({ ...r, precio_referecia: Number(r.precio_referecia), activo: r.activo ?? true })));
-    setLoading(false);
+    try {
+      setItems(await getCatalogItems());
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al cargar catálogo.");
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => { load(); }, []);
 
@@ -53,47 +56,48 @@ export default function CatalogList() {
     const precio = Number(form.precio_referecia);
     if (!form.nombre || !Number.isFinite(precio) || precio < 0) return toast.error("Completa nombre y precio válido.");
     setSaving(true);
-    if (editingId != null) {
-      const { error } = await supabase.from("catalogo_items").update({
-        nombre: form.nombre,
-        descripcion: form.descripcion || null,
-        tipo_unidad: form.tipo_unidad,
-        precio_referecia: precio,
-      }).eq("id", editingId);
+    const payload = {
+      nombre: form.nombre,
+      descripcion: form.descripcion || null,
+      tipo_unidad: form.tipo_unidad,
+      precio_referecia: precio,
+    };
+    try {
+      if (editingId != null) {
+        await updateCatalogItem(editingId, payload);
+        toast.success("Ítem actualizado");
+      } else {
+        await createCatalogItem(payload);
+        toast.success("Ítem creado");
+      }
+      resetForm();
+      load();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Error al guardar.");
+    } finally {
       setSaving(false);
-      if (error) return toast.error(error.message);
-      toast.success("Ítem actualizado");
-    } else {
-      const { data: u } = await supabase.from("usuarios").select("id").maybeSingle();
-      if (!u) { setSaving(false); return toast.error("Inicia sesión."); }
-      const { error } = await supabase.from("catalogo_items").insert({
-        usuario_id: u.id,
-        nombre: form.nombre,
-        descripcion: form.descripcion || null,
-        tipo_unidad: form.tipo_unidad,
-        precio_referecia: precio,
-      });
-      setSaving(false);
-      if (error) return toast.error(error.message);
-      toast.success("Ítem creado");
     }
-    resetForm();
-    load();
   };
 
   const toggleActivo = async (i: Item) => {
-    const { error } = await supabase.from("catalogo_items").update({ activo: !i.activo }).eq("id", i.id);
-    if (error) return toast.error(error.message);
-    toast.success(i.activo ? "Ítem desactivado" : "Ítem activado");
-    load();
+    try {
+      await setCatalogItemActive(i.id, !i.activo);
+      toast.success(i.activo ? "Ítem desactivado" : "Ítem activado");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al actualizar.");
+    }
   };
 
   const remove = async (i: Item) => {
     if (!confirm(`¿Eliminar el ítem "${i.nombre}"? Los presupuestos históricos que lo usan no se verán afectados.`)) return;
-    const { error } = await supabase.from("catalogo_items").delete().eq("id", i.id);
-    if (error) return toast.error(error.message);
-    toast.success("Ítem eliminado");
-    load();
+    try {
+      await deleteCatalogItem(i.id);
+      toast.success("Ítem eliminado");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al eliminar.");
+    }
   };
 
   const visible = showInactive ? items : items.filter((i) => i.activo);

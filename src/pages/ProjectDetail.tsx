@@ -285,7 +285,7 @@ export default function ProjectDetail({ id }: { id: string }) {
                               <button onClick={() => startEditRepo(r)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-heading" title="Editar">
                                 <Pencil className="h-4 w-4" />
                               </button>
-                              <button onClick={() => deleteRepo(r)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-destructive" title="Eliminar">
+                              <button onClick={() => deleteRepoFn(r)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-destructive" title="Eliminar">
                                 <Trash2 className="h-4 w-4" />
                               </button>
                             </div>

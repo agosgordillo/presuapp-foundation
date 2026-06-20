@@ -2,12 +2,22 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft, ExternalLink, Loader2, Pencil, Plus, Trash2, X, Check } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  createPago,
+  createRepo,
+  deleteRepo,
+  getPagosByProject,
+  getProjectDetail,
+  getReposByProject,
+  updateRepo,
+  type Pago,
+  type ProjectDetail as ProyectoT,
+  type Repo,
+} from "@/lib/api/projects";
+import { getQuotesByProject, type QuoteByProject } from "@/lib/api/quotes";
 
-type Proyecto = { id: number; nombre: string; descripcion: string | null; estado: string; cliente_id: number; clientes?: { nombre: string } };
-type Pres = { id: number; codigo: string; total: number; estado: string };
-type Pago = { id: number; fecha_pago: string; monto: number; metodo: string; notas: string | null };
-type Repo = { id: number; nombre: string; url: string };
+type Proyecto = ProyectoT;
+type Pres = QuoteByProject;
 
 const ESTADO_LABEL: Record<string, string> = {
   DRAFT: "Borrador",
@@ -45,26 +55,30 @@ export default function ProjectDetail({ id }: { id: string }) {
   const [editRepo, setEditRepo] = useState({ nombre: "", url: "" });
 
   const loadRepos = async () => {
-    const { data } = await supabase
-      .from("proyecto_repositorios")
-      .select("id, nombre, url")
-      .eq("proyecto_id", projectId)
-      .order("created_at", { ascending: true });
-    setRepos((data ?? []) as Repo[]);
+    try {
+      setRepos(await getReposByProject(projectId));
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al cargar repositorios.");
+    }
   };
 
   const load = async () => {
     if (!Number.isFinite(projectId)) return setLoading(false);
-    const [{ data: pr }, { data: pres }, { data: pgs }] = await Promise.all([
-      supabase.from("proyectos").select("*, clientes(nombre)").eq("id", projectId).maybeSingle(),
-      supabase.from("presupuestos").select("id, codigo, total, estado").eq("proyecto_id", projectId).order("created_at", { ascending: false }),
-      supabase.from("pagos").select("*").eq("proyecto_id", projectId).order("fecha_pago", { ascending: false }),
-    ]);
-    setProyecto(pr as any);
-    setPresupuestos((pres ?? []).map((r: any) => ({ ...r, total: Number(r.total) })));
-    setPagos((pgs ?? []).map((r: any) => ({ ...r, monto: Number(r.monto) })));
-    await loadRepos();
-    setLoading(false);
+    try {
+      const [pr, pres, pgs] = await Promise.all([
+        getProjectDetail(projectId),
+        getQuotesByProject(projectId),
+        getPagosByProject(projectId),
+      ]);
+      setProyecto(pr);
+      setPresupuestos(pres);
+      setPagos(pgs);
+      await loadRepos();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al cargar proyecto.");
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => { load(); }, [projectId]);
 
@@ -79,34 +93,33 @@ export default function ProjectDetail({ id }: { id: string }) {
     if (contractValue === 0) return toast.error("No hay presupuestos ACCEPTED en este proyecto.");
     if (monto > saldo) return toast.error(`El pago (${money(monto)}) excede el saldo pendiente (${money(saldo)}).`);
     setSaving(true);
-    const { error } = await supabase.from("pagos").insert({
-      proyecto_id: projectId,
-      monto,
-      metodo: pago.metodo,
-      notas: pago.notas || null,
-    });
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("Pago registrado");
-    setPago({ monto: "", metodo: "TRANSFER", notas: "" });
-    load();
+    try {
+      await createPago({ proyecto_id: projectId, monto, metodo: pago.metodo, notas: pago.notas || null });
+      toast.success("Pago registrado");
+      setPago({ monto: "", metodo: "TRANSFER", notas: "" });
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al registrar pago.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const addRepo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!repoForm.nombre.trim() || !repoForm.url.trim()) return toast.error("Nombre y URL son obligatorios.");
     setRepoSaving(true);
-    const { error } = await supabase.from("proyecto_repositorios").insert({
-      proyecto_id: projectId,
-      nombre: repoForm.nombre.trim(),
-      url: repoForm.url.trim(),
-    });
-    setRepoSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("Repositorio agregado");
-    setRepoForm({ nombre: "", url: "" });
-    setShowRepoForm(false);
-    loadRepos();
+    try {
+      await createRepo(projectId, { nombre: repoForm.nombre.trim(), url: repoForm.url.trim() });
+      toast.success("Repositorio agregado");
+      setRepoForm({ nombre: "", url: "" });
+      setShowRepoForm(false);
+      loadRepos();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al agregar.");
+    } finally {
+      setRepoSaving(false);
+    }
   };
 
   const startEditRepo = (r: Repo) => {
@@ -116,25 +129,28 @@ export default function ProjectDetail({ id }: { id: string }) {
 
   const saveEditRepo = async (id: number) => {
     if (!editRepo.nombre.trim() || !editRepo.url.trim()) return toast.error("Nombre y URL son obligatorios.");
-    const { error } = await supabase
-      .from("proyecto_repositorios")
-      .update({ nombre: editRepo.nombre.trim(), url: editRepo.url.trim() })
-      .eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Repositorio actualizado");
-    setEditingRepoId(null);
-    loadRepos();
+    try {
+      await updateRepo(id, { nombre: editRepo.nombre.trim(), url: editRepo.url.trim() });
+      toast.success("Repositorio actualizado");
+      setEditingRepoId(null);
+      loadRepos();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al actualizar.");
+    }
   };
 
-  const deleteRepo = async (r: Repo) => {
+  const deleteRepoFn = async (r: Repo) => {
     toast(`Eliminar "${r.nombre}"?`, {
       action: {
         label: "Eliminar",
         onClick: async () => {
-          const { error } = await supabase.from("proyecto_repositorios").delete().eq("id", r.id);
-          if (error) return toast.error(error.message);
-          toast.success("Repositorio eliminado");
-          loadRepos();
+          try {
+            await deleteRepo(r.id);
+            toast.success("Repositorio eliminado");
+            loadRepos();
+          } catch (e: any) {
+            toast.error(e?.message ?? "Error al eliminar.");
+          }
         },
       },
       cancel: { label: "Cancelar", onClick: () => {} },

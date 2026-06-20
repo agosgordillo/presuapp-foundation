@@ -65,21 +65,16 @@ export default function QuotesList() {
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    const [{ data: q }, { data: p }, { data: c }] = await Promise.all([
-      supabase.from("presupuestos").select("id, codigo, fecha_emision, subtotal, impuestos, total, estado, proyecto_id, proyectos!inner(nombre, clientes!inner(nombre, email))").order("created_at", { ascending: false }),
-      supabase.from("proyectos").select("id, nombre, clientes(nombre)").order("created_at", { ascending: false }),
-      supabase.from("catalogo_items").select("id, nombre, tipo_unidad, precio_referecia, activo").eq("activo", true).order("nombre"),
-    ]);
-    setRows((q ?? []).map((r: any) => ({
-      id: r.id, codigo: r.codigo, fecha_emision: r.fecha_emision, proyecto_id: r.proyecto_id,
-      subtotal: Number(r.subtotal), impuestos: Number(r.impuestos), total: Number(r.total), estado: r.estado,
-      proyecto: r.proyectos?.nombre ?? "—",
-      cliente: r.proyectos?.clientes?.nombre ?? "—",
-      cliente_email: r.proyectos?.clientes?.email ?? null,
-    })));
-    setProyectos((p ?? []) as any);
-    setCatalog((c ?? []).map((r: any) => ({ ...r, precio_referecia: Number(r.precio_referecia) })));
-    setLoading(false);
+    try {
+      const [q, p, c] = await Promise.all([getQuotes(), getProyectoOptions(), getActiveCatalogItems()]);
+      setRows(q);
+      setProyectos(p);
+      setCatalog(c);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al cargar presupuestos.");
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => { load(); }, []);
 

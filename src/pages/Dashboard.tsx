@@ -1,15 +1,10 @@
 import { useEffect, useState } from "react";
 import { DollarSign, TrendingUp, FileText, Users, Loader2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { getDashboardMetrics, type DashboardMetrics } from "@/lib/api/quotes";
 
-type Metrics = {
-  facturado: number;
-  cobrado: number;
-  pendiente: number;
-  clientes: number;
-  recientes: { id: number; codigo: string; cliente: string; total: number; estado: string }[];
-};
+type Metrics = DashboardMetrics;
 
 const money = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
@@ -28,30 +23,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     (async () => {
-      const [{ data: accepted }, { data: pagos }, { count: cliCount }, { data: recientes }] = await Promise.all([
-        supabase.from("presupuestos").select("total,estado").eq("estado", "ACCEPTED"),
-        supabase.from("pagos").select("monto"),
-        supabase.from("clientes").select("*", { count: "exact", head: true }),
-        supabase
-          .from("presupuestos")
-          .select("id, codigo, total, estado, proyectos!inner(clientes!inner(nombre))")
-          .order("created_at", { ascending: false })
-          .limit(5),
-      ]);
-
-      const facturado = (accepted ?? []).reduce((s, r) => s + Number(r.total), 0);
-      const cobrado = (pagos ?? []).reduce((s, r) => s + Number(r.monto), 0);
-      const pendiente = Math.max(0, facturado - cobrado);
-      const recientesFormatted = (recientes ?? []).map((r: any) => ({
-        id: r.id,
-        codigo: r.codigo,
-        cliente: r.proyectos?.clientes?.nombre ?? "—",
-        total: Number(r.total),
-        estado: r.estado,
-      }));
-
-      setData({ facturado, cobrado, pendiente, clientes: cliCount ?? 0, recientes: recientesFormatted });
-      setLoading(false);
+      try {
+        setData(await getDashboardMetrics());
+      } catch (e: any) {
+        toast.error(e?.message ?? "Error al cargar métricas.");
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 

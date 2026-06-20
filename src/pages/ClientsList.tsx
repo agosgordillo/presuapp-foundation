@@ -82,16 +82,16 @@ export default function ClientsList() {
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary">/clientes</p>
-          <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">Clientes — Cartera de Cuentas</h1>
-          <p className="mt-2 text-sm text-muted-foreground max-w-2xl">Gestiona, edita y filtra tus clientes. La eliminación se restringe si existen proyectos asociados.</p>
-        </div>
-        <button onClick={() => { if (showForm) resetForm(); else setShowForm(true); }} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary-hover">
-          <Plus className="h-4 w-4" /> {showForm ? "Cancelar" : "Nuevo cliente"}
-        </button>
-      </header>
+      <PageHeader
+        eyebrow="/clientes"
+        title="Clientes — Cartera de Cuentas"
+        description="Gestiona, edita y filtra tus clientes. La eliminación se restringe si existen proyectos asociados."
+        actions={
+          <button onClick={() => { if (showForm) resetForm(); else setShowForm(true); }} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary-hover">
+            <Plus className="h-4 w-4" /> {showForm ? "Cancelar" : "Nuevo cliente"}
+          </button>
+        }
+      />
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

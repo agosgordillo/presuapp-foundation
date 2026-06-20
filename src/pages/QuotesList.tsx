@@ -128,25 +128,25 @@ export default function QuotesList() {
   const startNew = () => { resetForm(); setShowForm(true); };
 
   const startEdit = async (q: Quote) => {
-    const { data, error } = await supabase
-      .from("presupuesto_items")
-      .select("nombre_historico, tipo_unidad_historica, cantidad, precio_unitario, aplica_impuesto, impuesto_porcentaje")
-      .eq("presupuesto_id", q.id);
-    if (error) return toast.error(error.message);
-    setEditingId(q.id);
-    setProyectoId(String(q.proyecto_id));
-    setDefaultTaxPct(DEFAULT_TAX);
-    setItems((data ?? []).map((r: any) => ({
-      catalogo_item_id: null,
-      nombre: r.nombre_historico,
-      tipo_unidad: r.tipo_unidad_historica,
-      cantidad: String(r.cantidad),
-      precio_unitario: String(r.precio_unitario),
-      aplica_impuesto: r.aplica_impuesto ?? true,
-      impuesto_porcentaje: String(r.impuesto_porcentaje ?? DEFAULT_TAX),
-    })));
-    setShowForm(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    try {
+      const data = await getQuoteItemsForEdit(q.id);
+      setEditingId(q.id);
+      setProyectoId(String(q.proyecto_id));
+      setDefaultTaxPct(DEFAULT_TAX);
+      setItems(data.map((r) => ({
+        catalogo_item_id: null,
+        nombre: r.nombre_historico,
+        tipo_unidad: r.tipo_unidad_historica,
+        cantidad: String(r.cantidad),
+        precio_unitario: String(r.precio_unitario),
+        aplica_impuesto: r.aplica_impuesto ?? true,
+        impuesto_porcentaje: String(r.impuesto_porcentaje ?? DEFAULT_TAX),
+      })));
+      setShowForm(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al cargar el presupuesto.");
+    }
   };
 
   const save = async (e: React.FormEvent) => {
@@ -175,35 +175,28 @@ export default function QuotesList() {
       };
     });
 
+    const header = {
+      proyecto_id: Number(proyectoId),
+      subtotal: Number(subtotal.toFixed(2)),
+      impuestos: Number(impuestos.toFixed(2)),
+      total: Number(total.toFixed(2)),
+    };
+
     try {
       if (editingId != null) {
-        const { error: upErr } = await supabase.from("presupuestos").update({
-          proyecto_id: Number(proyectoId),
-          subtotal: Number(subtotal.toFixed(2)),
-          impuestos: Number(impuestos.toFixed(2)),
-          total: Number(total.toFixed(2)),
-        }).eq("id", editingId);
-        if (upErr) throw upErr;
-        const { error: delErr } = await supabase.from("presupuesto_items").delete().eq("presupuesto_id", editingId);
-        if (delErr) throw delErr;
-        const { error: insErr } = await supabase.from("presupuesto_items").insert(itemRows(editingId));
-        if (insErr) throw insErr;
+        await updateQuoteHeader(editingId, header);
+        await deleteQuoteItems(editingId);
+        await insertQuoteItems(itemRows(editingId));
         toast.success("Presupuesto actualizado");
       } else {
-        const { count } = await supabase.from("presupuestos").select("*", { count: "exact", head: true });
-        const codigo = `#${String((count ?? 0) + 1).padStart(3, "0")}`;
-        const { data: ins, error } = await supabase.from("presupuestos").insert({
-          proyecto_id: Number(proyectoId),
+        const codigo = await getNextQuoteCodigo();
+        const newId = await createQuote({
+          ...header,
           codigo,
           fecha_emision: new Date().toISOString().slice(0, 10),
           estado: "DRAFT",
-          subtotal: Number(subtotal.toFixed(2)),
-          impuestos: Number(impuestos.toFixed(2)),
-          total: Number(total.toFixed(2)),
-        }).select("id").single();
-        if (error || !ins) throw error ?? new Error("Error al guardar.");
-        const { error: itErr } = await supabase.from("presupuesto_items").insert(itemRows(ins.id));
-        if (itErr) throw itErr;
+        });
+        await insertQuoteItems(itemRows(newId));
         toast.success(`Presupuesto ${codigo} creado`);
       }
       await load();
@@ -217,40 +210,23 @@ export default function QuotesList() {
 
   const remove = async (q: Quote) => {
     if (!confirm(`¿Eliminar presupuesto ${q.codigo}? Esta acción no se puede deshacer.`)) return;
-    const { error: itErr } = await supabase.from("presupuesto_items").delete().eq("presupuesto_id", q.id);
-    if (itErr) return toast.error(itErr.message);
-    const { error } = await supabase.from("presupuestos").delete().eq("id", q.id);
-    if (error) return toast.error(error.message);
-    toast.success("Presupuesto eliminado");
-    await load();
+    try {
+      await deleteQuote(q.id);
+      toast.success("Presupuesto eliminado");
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al eliminar.");
+    }
   };
 
   const duplicate = async (q: Quote) => {
-    const { data: src, error: srcErr } = await supabase
-      .from("presupuesto_items")
-      .select("nombre_historico, tipo_unidad_historica, cantidad, precio_unitario, subtotal_item")
-      .eq("presupuesto_id", q.id);
-    if (srcErr) return toast.error(srcErr.message);
-    const { count } = await supabase.from("presupuestos").select("*", { count: "exact", head: true });
-    const codigo = `#${String((count ?? 0) + 1).padStart(3, "0")}`;
-    const { data: ins, error } = await supabase.from("presupuestos").insert({
-      proyecto_id: q.proyecto_id,
-      codigo,
-      fecha_emision: new Date().toISOString().slice(0, 10),
-      estado: "DRAFT",
-      subtotal: q.subtotal,
-      impuestos: q.impuestos,
-      total: q.total,
-    }).select("id").single();
-    if (error || !ins) return toast.error(error?.message || "Error al duplicar.");
-    if (src && src.length > 0) {
-      const { error: itErr } = await supabase.from("presupuesto_items").insert(
-        src.map((r: any) => ({ ...r, presupuesto_id: ins.id }))
-      );
-      if (itErr) return toast.error(itErr.message);
+    try {
+      const codigo = await duplicateQuoteApi(q);
+      toast.success(`Duplicado como ${codigo} (Borrador)`);
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al duplicar.");
     }
-    toast.success(`Duplicado como ${codigo} (Borrador)`);
-    await load();
   };
 
   const updateStatus = async (q: Quote, estado: string) => {
@@ -260,11 +236,8 @@ export default function QuotesList() {
 
     // Revert from ACCEPTED → warn about preserved payment history
     if (q.estado === "ACCEPTED" && estado !== "ACCEPTED") {
-      const { count: payCount } = await supabase
-        .from("pagos")
-        .select("*", { count: "exact", head: true })
-        .eq("proyecto_id", q.proyecto_id);
-      const msg = payCount && payCount > 0
+      const payCount = await countPagosByProject(q.proyecto_id);
+      const msg = payCount > 0
         ? `⚠️ Advertencia: este presupuesto está ACEPTADO y el proyecto tiene ${payCount} pago(s) registrado(s).\n\nAl revertir a "${ESTADO_LABEL[estado]}" el valor de contrato cambiará, pero los pagos se conservarán en el historial para auditoría.\n\n¿Confirmas el cambio?`
         : `⚠️ Vas a revertir un presupuesto ACEPTADO a "${ESTADO_LABEL[estado]}". Esto deshabilitará nuevos pagos si no hay otros presupuestos aceptados.\n\n¿Continuar?`;
       if (!confirm(msg)) return;
@@ -273,16 +246,19 @@ export default function QuotesList() {
       if (!confirm(`Transición no estándar: ${ESTADO_LABEL[q.estado]} → ${ESTADO_LABEL[estado]}.\n\nEl flujo recomendado es Borrador → Enviado → Visto → Aceptado/Rechazado.\n\n¿Continuar de todos modos?`)) return;
     }
 
-    const { error } = await supabase.from("presupuestos").update({ estado }).eq("id", q.id);
-    if (error) return toast.error(error.message);
-
-    if (estado === "ACCEPTED") {
-      toast.success(`Aceptado — Módulo de Pagos habilitado para "${q.proyecto}"`);
-    } else {
-      toast.success(`Estado: ${ESTADO_LABEL[estado] ?? estado}`);
+    try {
+      await updateQuoteEstado(q.id, estado);
+      if (estado === "ACCEPTED") {
+        toast.success(`Aceptado — Módulo de Pagos habilitado para "${q.proyecto}"`);
+      } else {
+        toast.success(`Estado: ${ESTADO_LABEL[estado] ?? estado}`);
+      }
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al actualizar estado.");
     }
-    await load();
   };
+
 
   const downloadPdf = async (quote: Quote) => {
     try { await downloadQuotePdf(quote); toast.success("PDF descargado"); }

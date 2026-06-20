@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from "react";
-import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import type { User } from "@supabase/supabase-js";
-import { toast } from "sonner";
 import {
   LayoutDashboard,
   Users,
@@ -9,12 +8,10 @@ import {
   BookOpen,
   FileText,
   LayoutGrid,
-  Menu,
   X,
   ArrowLeft,
-  LogOut,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Header } from "@/components/Header";
 
 const navItems = [
   { to: "/dashboard", label: "Panel de Control", icon: LayoutDashboard },
@@ -27,19 +24,6 @@ const navItems = [
 export function DashboardLayout({ children, user }: { children: ReactNode; user?: User | null }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const navigate = useNavigate();
-
-  const nombre =
-    (user?.user_metadata?.nombre as string | undefined) ||
-    user?.email?.split("@")[0] ||
-    "Invitado";
-  const initial = nombre.charAt(0).toUpperCase() || "P";
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast.success("Sesión cerrada");
-    navigate({ to: "/login" });
-  };
 
   return (
     <div className="min-h-screen bg-surface">
@@ -111,46 +95,10 @@ export function DashboardLayout({ children, user }: { children: ReactNode; user?
 
       {/* Main column */}
       <div className="md:pl-64">
-        {/* Top header */}
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card/80 backdrop-blur-md px-4 md:px-8">
-          <button
-            className="md:hidden text-heading"
-            onClick={() => setMobileOpen(true)}
-            aria-label="Abrir menú"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <div className="hidden md:block">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Panel B2B SaaS
-            </p>
-            <p className="text-sm font-semibold text-heading">Consola PresuApp</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-success-light px-3 py-1 text-xs font-semibold text-success-dark">
-              <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-              Sesión activa
-            </span>
-            <div className="hidden md:flex flex-col items-end leading-tight">
-              <span className="text-sm font-semibold text-heading">{nombre}</span>
-              <span className="text-[11px] text-muted-foreground">{user?.email}</span>
-            </div>
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-              {initial}
-            </span>
-            <button
-              onClick={handleSignOut}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-destructive hover:border-destructive transition-colors"
-              aria-label="Cerrar sesión"
-              title="Cerrar sesión"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
-        </header>
-
+        <Header user={user} onOpenMobileMenu={() => setMobileOpen(true)} />
         <main className="p-6 md:p-10">{children}</main>
       </div>
     </div>
   );
 }
+

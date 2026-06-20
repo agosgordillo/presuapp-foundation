@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { createCustomer, deleteCustomer, getCustomers, updateCustomer, type CustomerRow } from "@/lib/api/customers";
+import { PageHeader } from "@/components/PageHeader";
 
 type FormState = { nombre: string; email: string; telefono: string; empresa: string };
 const EMPTY: FormState = { nombre: "", email: "", telefono: "", empresa: "" };

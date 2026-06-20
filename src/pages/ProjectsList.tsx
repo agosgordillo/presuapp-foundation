@@ -11,6 +11,7 @@ import {
   type ClienteOpt,
   type ProjectRow,
 } from "@/lib/api/projects";
+import { PageHeader } from "@/components/PageHeader";
 
 const ESTADOS = ["ACTIVE", "CLOSED"] as const;
 const ESTADO_LABEL: Record<string, string> = { ACTIVE: "Activo", CLOSED: "Cerrado" };

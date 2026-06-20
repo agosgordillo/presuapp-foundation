@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { getCustomerById, type CustomerDetail } from "@/lib/api/customers";
 import { getProjectsByClient, type ProjectByClient } from "@/lib/api/projects";
 import { getAcceptedTotalsByProjectIds } from "@/lib/api/quotes";
+import { PageHeader } from "@/components/PageHeader";
 
 type ClientRow = CustomerDetail;
 type ProyectoRow = ProjectByClient;

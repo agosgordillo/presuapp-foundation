@@ -2,10 +2,15 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-
-type Row = { id: number; nombre: string; descripcion: string | null; estado: string; cliente: string; cliente_id: number };
-type ClienteOpt = { id: number; nombre: string };
+import {
+  createProject,
+  deleteProject,
+  getClienteOptions,
+  getProjects,
+  updateProject,
+  type ClienteOpt,
+  type ProjectRow,
+} from "@/lib/api/projects";
 
 const ESTADOS = ["ACTIVE", "CLOSED"] as const;
 const ESTADO_LABEL: Record<string, string> = { ACTIVE: "Activo", CLOSED: "Cerrado" };
@@ -14,7 +19,7 @@ type FormState = { nombre: string; descripcion: string; cliente_id: string; esta
 const EMPTY: FormState = { nombre: "", descripcion: "", cliente_id: "", estado: "ACTIVE" };
 
 export default function ProjectsList() {
-  const [rows, setRows] = useState<Row[]>([]);
+  const [rows, setRows] = useState<ProjectRow[]>([]);
   const [clientes, setClientes] = useState<ClienteOpt[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -24,19 +29,21 @@ export default function ProjectsList() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: p }, { data: c }] = await Promise.all([
-      supabase.from("proyectos").select("id, nombre, descripcion, estado, cliente_id, clientes!inner(nombre)").order("created_at", { ascending: false }),
-      supabase.from("clientes").select("id, nombre").order("nombre"),
-    ]);
-    setRows((p ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre, descripcion: r.descripcion, estado: r.estado, cliente_id: r.cliente_id, cliente: r.clientes?.nombre ?? "—" })));
-    setClientes((c ?? []) as ClienteOpt[]);
-    setLoading(false);
+    try {
+      const [p, c] = await Promise.all([getProjects(), getClienteOptions()]);
+      setRows(p);
+      setClientes(c);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error al cargar proyectos.");
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => { load(); }, []);
 
   const resetForm = () => { setForm(EMPTY); setEditingId(null); setShowForm(false); };
 
-  const startEdit = (r: Row, e: React.MouseEvent) => {
+  const startEdit = (r: ProjectRow, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setEditingId(r.id);
@@ -48,39 +55,40 @@ export default function ProjectsList() {
     e.preventDefault();
     if (!form.nombre || !form.cliente_id) return toast.error("Nombre y cliente son obligatorios.");
     setSaving(true);
-    if (editingId != null) {
-      const { error } = await supabase.from("proyectos").update({
-        nombre: form.nombre,
-        descripcion: form.descripcion || null,
-        cliente_id: Number(form.cliente_id),
-        estado: form.estado,
-      }).eq("id", editingId);
+    const payload = {
+      nombre: form.nombre,
+      descripcion: form.descripcion || null,
+      cliente_id: Number(form.cliente_id),
+      estado: form.estado,
+    };
+    try {
+      if (editingId != null) {
+        await updateProject(editingId, payload);
+        toast.success("Proyecto actualizado");
+      } else {
+        await createProject(payload);
+        toast.success("Proyecto creado");
+      }
+      resetForm();
+      load();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Error al guardar.");
+    } finally {
       setSaving(false);
-      if (error) return toast.error(error.message);
-      toast.success("Proyecto actualizado");
-    } else {
-      const { error } = await supabase.from("proyectos").insert({
-        nombre: form.nombre,
-        descripcion: form.descripcion || null,
-        cliente_id: Number(form.cliente_id),
-        estado: form.estado,
-      });
-      setSaving(false);
-      if (error) return toast.error(error.message);
-      toast.success("Proyecto creado");
     }
-    resetForm();
-    load();
   };
 
-  const remove = async (r: Row, e: React.MouseEvent) => {
+  const remove = async (r: ProjectRow, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!confirm(`¿Eliminar el proyecto "${r.nombre}"? Se eliminarán también sus presupuestos y pagos asociados.`)) return;
-    const { error } = await supabase.from("proyectos").delete().eq("id", r.id);
-    if (error) return toast.error(error.message);
-    toast.success("Proyecto eliminado");
-    load();
+    try {
+      await deleteProject(r.id);
+      toast.success("Proyecto eliminado");
+      load();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Error al eliminar.");
+    }
   };
 
   return (

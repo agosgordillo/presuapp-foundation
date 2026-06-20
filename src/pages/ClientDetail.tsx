@@ -2,10 +2,12 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { getCustomerById, type CustomerDetail } from "@/lib/api/customers";
+import { getProjectsByClient, type ProjectByClient } from "@/lib/api/projects";
+import { getAcceptedTotalsByProjectIds } from "@/lib/api/quotes";
 
-type ClientRow = { id: number; nombre: string; email: string; telefono: string; empresa: string };
-type ProyectoRow = { id: number; nombre: string; estado: string };
+type ClientRow = CustomerDetail;
+type ProyectoRow = ProjectByClient;
 
 export default function ClientDetail({ id }: { id: string }) {
   const clientId = Number(id);
@@ -20,20 +22,17 @@ export default function ClientDetail({ id }: { id: string }) {
         setLoading(false);
         return;
       }
-      const [{ data: c, error: ec }, { data: p }] = await Promise.all([
-        supabase.from("clientes").select("*").eq("id", clientId).maybeSingle(),
-        supabase.from("proyectos").select("id, nombre, estado").eq("cliente_id", clientId).order("created_at", { ascending: false }),
-      ]);
-      if (ec) toast.error(ec.message);
-      setCliente(c as ClientRow | null);
-      setProyectos((p ?? []) as ProyectoRow[]);
-
-      const projIds = (p ?? []).map((x: any) => x.id);
-      if (projIds.length) {
-        const { data: pres } = await supabase.from("presupuestos").select("total").eq("estado", "ACCEPTED").in("proyecto_id", projIds);
-        setFacturacion((pres ?? []).reduce((s, r) => s + Number(r.total), 0));
+      try {
+        const [c, p] = await Promise.all([getCustomerById(clientId), getProjectsByClient(clientId)]);
+        setCliente(c);
+        setProyectos(p);
+        const projIds = p.map((x) => x.id);
+        setFacturacion(await getAcceptedTotalsByProjectIds(projIds));
+      } catch (e: any) {
+        toast.error(e?.message ?? "Error al cargar cliente.");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, [clientId]);
 

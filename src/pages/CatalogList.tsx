@@ -9,6 +9,7 @@ import {
   updateCatalogItem,
   type CatalogItemRow,
 } from "@/lib/api/catalog";
+import { PageHeader } from "@/components/PageHeader";
 
 type Item = CatalogItemRow;
 const UNITS = ["HR", "U", "SVC", "MES", "PROY"] as const;
@@ -104,22 +105,22 @@ export default function CatalogList() {
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary">/catalogo</p>
-          <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">Catálogo — Inventario de Servicios</h1>
-          <p className="mt-2 text-sm text-muted-foreground max-w-2xl">Ítems reutilizables. Desactiva los obsoletos para ocultarlos al crear presupuestos sin afectar los históricos.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-            <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} className="rounded border-border" />
-            Mostrar inactivos
-          </label>
-          <button onClick={() => { if (showForm) resetForm(); else setShowForm(true); }} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover">
-            <Plus className="h-4 w-4" /> {showForm ? "Cancelar" : "Nuevo ítem"}
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        eyebrow="/catalogo"
+        title="Catálogo — Inventario de Servicios"
+        description="Ítems reutilizables. Desactiva los obsoletos para ocultarlos al crear presupuestos sin afectar los históricos."
+        actions={
+          <>
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+              <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} className="rounded border-border" />
+              Mostrar inactivos
+            </label>
+            <button onClick={() => { if (showForm) resetForm(); else setShowForm(true); }} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover">
+              <Plus className="h-4 w-4" /> {showForm ? "Cancelar" : "Nuevo ítem"}
+            </button>
+          </>
+        }
+      />
 
       {showForm && (
         <form onSubmit={save} className="rounded-2xl border border-border bg-card p-5 grid grid-cols-1 md:grid-cols-4 gap-3">

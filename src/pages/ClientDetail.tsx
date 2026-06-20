@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { getCustomerById, type CustomerDetail } from "@/lib/api/customers";
 import { getProjectsByClient, type ProjectByClient } from "@/lib/api/projects";
 import { getAcceptedTotalsByProjectIds } from "@/lib/api/quotes";
+import { PageHeader } from "@/components/PageHeader";
 
 type ClientRow = CustomerDetail;
 type ProyectoRow = ProjectByClient;
@@ -42,15 +43,11 @@ export default function ClientDetail({ id }: { id: string }) {
         <ArrowLeft className="h-4 w-4" /> Volver a Clientes
       </Link>
 
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-wider text-primary">/clients/:id</p>
-        <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">
-          Cliente: <span className="text-primary">#{id}</span>
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Token <code className="rounded bg-secondary px-1.5 py-0.5 text-xs">:id</code> capturado vía <code className="rounded bg-secondary px-1.5 py-0.5 text-xs">useParams()</code> y resuelto contra Lovable Cloud.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="/clients/:id"
+        title={<>Cliente: <span className="text-primary">#{id}</span></>}
+        description={<>Token <code className="rounded bg-secondary px-1.5 py-0.5 text-xs">:id</code> capturado vía <code className="rounded bg-secondary px-1.5 py-0.5 text-xs">useParams()</code> y resuelto contra Lovable Cloud.</>}
+      />
 
       {loading ? (
         <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando…</p>

@@ -3,6 +3,7 @@ import { DollarSign, TrendingUp, FileText, Users, Loader2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { getDashboardMetrics, type DashboardMetrics } from "@/lib/api/quotes";
+import { PageHeader } from "@/components/PageHeader";
 
 type Metrics = DashboardMetrics;
 
@@ -35,13 +36,11 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-wider text-primary">/dashboard</p>
-        <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">Panel de Control — Resumen Operativo</h1>
-        <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
-          Hub central de métricas B2B. Vista panorámica en tiempo real desde Lovable Cloud.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="/dashboard"
+        title="Panel de Control — Resumen Operativo"
+        description="Hub central de métricas B2B. Vista panorámica en tiempo real desde Lovable Cloud."
+      />
 
       {loading || !data ? (
         <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Cargando métricas…</div>

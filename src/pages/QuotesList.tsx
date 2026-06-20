@@ -19,6 +19,7 @@ import {
   type Quote,
 } from "@/lib/api/quotes";
 import { getActiveCatalogItems, type ActiveCatalogItem } from "@/lib/api/catalog";
+import { PageHeader } from "@/components/PageHeader";
 
 type CatalogItem = ActiveCatalogItem;
 
@@ -275,16 +276,16 @@ export default function QuotesList() {
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary">/presupuestos</p>
-          <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">Presupuestos — Centralizador Multi-Estado</h1>
-          <p className="mt-2 text-sm text-muted-foreground max-w-2xl">Pipeline de cotizaciones con motor de cálculo cliente + persistencia transaccional en Lovable Cloud.</p>
-        </div>
-        <button onClick={() => showForm ? resetForm() : startNew()} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover">
-          <Plus className="h-4 w-4" /> {showForm ? "Cancelar" : "Nuevo presupuesto"}
-        </button>
-      </header>
+      <PageHeader
+        eyebrow="/presupuestos"
+        title="Presupuestos — Centralizador Multi-Estado"
+        description="Pipeline de cotizaciones con motor de cálculo cliente + persistencia transaccional en Lovable Cloud."
+        actions={
+          <button onClick={() => showForm ? resetForm() : startNew()} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover">
+            <Plus className="h-4 w-4" /> {showForm ? "Cancelar" : "Nuevo presupuesto"}
+          </button>
+        }
+      />
 
       {/* Métricas por estado */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">

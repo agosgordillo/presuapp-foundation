@@ -15,6 +15,7 @@ import {
   type Repo,
 } from "@/lib/api/projects";
 import { getQuotesByProject, type QuoteByProject } from "@/lib/api/quotes";
+import { PageHeader } from "@/components/PageHeader";
 
 type Proyecto = ProyectoT;
 type Pres = QuoteByProject;
@@ -163,16 +164,11 @@ export default function ProjectDetail({ id }: { id: string }) {
         <ArrowLeft className="h-4 w-4" /> Volver a Proyectos
       </Link>
 
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-wider text-primary">Detalle de Proyecto</p>
-        <h1 className="mt-2 text-3xl md:text-4xl font-bold text-heading">
-          Proyecto <span className="text-primary">#{id}</span>{" "}
-          {proyecto && <span className="text-heading">— {proyecto.nombre}</span>}
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {proyecto?.clientes?.nombre ? <>Cliente: <strong>{proyecto.clientes.nombre}</strong></> : "Información del proyecto y su actividad."}
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Detalle de Proyecto"
+        title={<>Proyecto <span className="text-primary">#{id}</span>{proyecto && <span className="text-heading"> — {proyecto.nombre}</span>}</>}
+        description={proyecto?.clientes?.nombre ? <>Cliente: <strong>{proyecto.clientes.nombre}</strong></> : "Información del proyecto y su actividad."}
+      />
 
       {loading ? (
         <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Cargando…</p>

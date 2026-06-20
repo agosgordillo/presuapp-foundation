@@ -1,12 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Copy, Download, FileText, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { downloadQuotePdf } from "@/lib/pdf/quotePdf";
+import {
+  countPagosByProject,
+  createQuote,
+  deleteQuote,
+  deleteQuoteItems,
+  duplicateQuote as duplicateQuoteApi,
+  getNextQuoteCodigo,
+  getProyectoOptions,
+  getQuoteItemsForEdit,
+  getQuotes,
+  insertQuoteItems,
+  updateQuoteEstado,
+  updateQuoteHeader,
+  type Proyecto,
+  type Quote,
+} from "@/lib/api/quotes";
+import { getActiveCatalogItems, type ActiveCatalogItem } from "@/lib/api/catalog";
 
-type Quote = { id: number; codigo: string; fecha_emision: string | null; total: number; subtotal: number; impuestos: number; estado: string; proyecto: string; cliente: string; cliente_email: string | null; proyecto_id: number };
-type Proyecto = { id: number; nombre: string; clientes?: { nombre: string } };
-type CatalogItem = { id: number; nombre: string; tipo_unidad: string; precio_referecia: number; activo: boolean };
+type CatalogItem = ActiveCatalogItem;
+
 
 const STATUSES = ["DRAFT", "SENT", "VIEWED", "ACCEPTED", "REJECTED"] as const;
 const ESTADO_LABEL: Record<string, string> = {

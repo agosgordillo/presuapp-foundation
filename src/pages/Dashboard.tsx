@@ -4,19 +4,13 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { getDashboardMetrics, type DashboardMetrics } from "@/lib/api/quotes";
 import { PageHeader } from "@/components/PageHeader";
+import { RecentQuoteRow } from "@/components/dashboard/RecentQuoteRow";
 
 type Metrics = DashboardMetrics;
 
 const money = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
-const ESTADO_LABEL: Record<string, string> = {
-  DRAFT: "Borrador",
-  SENT: "Enviado",
-  VIEWED: "Visto",
-  ACCEPTED: "Aceptado",
-  REJECTED: "Rechazado",
-};
 
 export default function Dashboard() {
   const [data, setData] = useState<Metrics | null>(null);
@@ -61,18 +55,10 @@ export default function Dashboard() {
             ) : (
               <ul className="mt-5 divide-y divide-border">
                 {data.recientes.map((q) => (
-                  <li key={q.id} className="flex items-center justify-between py-3">
-                    <div>
-                      <p className="text-sm font-semibold text-heading">{q.codigo}</p>
-                      <p className="text-xs text-muted-foreground">{q.cliente}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-heading">{money(q.total)}</p>
-                      <p className="text-xs text-muted-foreground">{ESTADO_LABEL[q.estado] ?? q.estado}</p>
-                    </div>
-                  </li>
+                  <RecentQuoteRow key={q.id} codigo={q.codigo} cliente={q.cliente} total={q.total} estado={q.estado} />
                 ))}
               </ul>
+
             )}
           </section>
         </>
